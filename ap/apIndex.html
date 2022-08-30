@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Abc</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    <meta charset="utf-8" />
+    <style>
+        .divMain {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 0.3rem;
+            text-align: center;
+        }
+
+        input {
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 0.3rem;
+        }
+
+        .btn {
+            font-size: 1.1rem;
+            text-decoration: none;
+            color: #000;
+            border: 0.1rem solid #000;
+            border-radius: 0.1rem;
+            margin: 0.3rem;
+            padding: 0.2rem;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: lightskyblue;
+            border-radius: 0;
+        }
+
+        .msg {
+            position: fixed;
+            width: 100vw;
+            left: 0;
+            padding: 0.3rem;
+            background: rgb(0, 91, 134);
+            color: #fff;
+            text-align: center;
+            top: -100%;
+            font-size: 1.1rem;
+            transition: all 0.9s ease-in-out;
+        }
+
+        .msgShow {
+            top: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="msg" class="msg"></div>
+    <div class='divMain'>
+        <div>
+            <div>
+                <input id='ssid' type='text' />
+            </div>
+            <div>
+                <input id='wifiPwd' type='password' />
+            </div>
+        </div>
+        <div>
+            <div>
+                <input id='user' type='text' />
+            </div>
+            <div>
+                <input id='userPwd' type='password' />
+            </div>
+        </div>
+        <div>
+            <div>
+                <input id='websocketDomain' type='text' />
+            </div>
+            <div>
+                <input id='websocketPort' type='text' />
+            </div>
+            <div>
+                <input id='websocketPath' type='text' />
+            </div>
+        </div>
+        <div>
+            <div>
+                <input id='nickname' type='text' />
+            </div>
+            <div>
+                <input id='token' type='password' />
+            </div>
+        </div>
+        <div>
+            <div>
+                <a class='btn' id='setArguments'></a>
+            </div>
+            <div>
+                <a class='btn' id='reboot'></a>
+            </div>
+            <div>
+                <a class='btn' id='rebootNow'></a>
+            </div>
+            <div>
+                <a class='btn' id='rollback'></a>
+            </div>
+            <div>
+                <a class='btn' id='deepSleep'></a>
+            </div>
+        </div>
+    </div>
+    <script>
+        ab_js
+    </script>
+    <script>
+        hash_js
+    </script>
+    <script>
+        main_js
+    </script>
+</body>
+
+</html>

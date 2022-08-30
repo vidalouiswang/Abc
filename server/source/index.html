@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    <title>Internal Of Things</title>
+    <style>
+        body {
+            background-image: radial-gradient(circle at 30% 30%, #1574a8, #666);
+        }
+
+        .divLogin {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            padding: 1rem;
+            z-index: 3;
+        }
+
+        .divLoginHide {
+            display: none;
+        }
+
+        .LoginInput {
+            font-size: 1.1rem;
+            margin: 0.2rem;
+            padding: 0.2rem;
+            text-align: center;
+            color: #fff;
+            border: 0.1rem solid #fff;
+            border-radius: 0.3rem;
+            background-color: rgba(35, 13, 96, 0.3);
+        }
+
+        .smallButton {
+            display: inline-block;
+            text-decoration: none;
+            font-size: 1.3rem;
+            margin: 0.1rem;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            margin: 0.1rem;
+            color: #fff;
+            border: 0.1rem solid #fff;
+            border-radius: 0.3rem;
+            padding: 0.2rem;
+        }
+
+        .btnLogin {
+            margin-top: 0.3rem;
+        }
+
+        .remPwdDot {
+            margin: 0 auto;
+            width: 0.8rem;
+            left: 50%;
+            height: 0.8rem;
+            border: .18rem solid #fff;
+            border-radius: 50%;
+            display: block;
+            background-color: transparent;
+        }
+
+        .remPwdDotSelected {
+            background-color: #fff;
+        }
+
+        .divRemPwd {
+            margin: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .spanText {
+            font-size: 1.3rem;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .divMsg {
+            position: absolute;
+            left: 0;
+            top: -5vh;
+            width: 100vw;
+            height: 5vh;
+            text-align: center;
+            color: #fff;
+            font-size: 1.3rem;
+            transition: ease-in-out 0.8s;
+        }
+
+        .divMsgShow {
+            top: 0;
+        }
+
+        .devices {
+            margin-top: 1rem;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 90vh;
+            text-align: center;
+            width: 90vw;
+            z-index: 0;
+        }
+
+        .deviceMore {
+            position: fixed;
+            height: 80vh;
+            width: 80vw;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border: 0.1rem solid #fff;
+            border-radius: 0.5rem;
+            background: rgba(35, 13, 96, 0.3);
+            display: none;
+            text-align: center;
+            justify-items: center;
+            backdrop-filter: blur(0.3rem);
+            overflow-y: auto;
+        }
+
+        .deviceMoreShow {
+            display: block;
+        }
+
+        .device {
+            padding: 0.5rem;
+            border: 0.2rem solid #fff;
+            font-size: 1.3rem;
+            color: #fff;
+            text-align: center;
+            margin: 0.8rem;
+            border-radius: 0.8rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="divMsg"></div>
+    <div id="divLogin" class="divLogin">
+        <div>
+            <div>
+                <input id='userName' class="LoginInput" type='text' placeholder="用户名" />
+            </div>
+            <div>
+                <input id='password' class="LoginInput" type='password' placeholder="密码" />
+            </div>
+        </div>
+
+        <div id="btnContainer">
+            <a id='login' class="button btnLogin">登录</a>
+        </div>
+        <div id="btnRemPwd" class="divRemPwd">
+            <div id="remPwdDot" class="remPwdDot"></div>
+            <span class="spanText">记住密码</span>
+        </div>
+    </div>
+
+    <div id="devices" class="devices">
+    </div>
+
+    <script>//hash.min.js//</script>
+    <script>//aes.min.js//</script>
+    <script>//ab.min.js//</script>
+    <script>//device.min.js//</script>
+    <script>//index.min.js//</script>
+</body>
+
+</html>
