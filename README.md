@@ -65,7 +65,9 @@ More information and examples refer to /examples/.
 
 ### The LittleFS extra component auto-selection feature has not been tested on Windows, but it should work and currently works fine on macOS 12.5.
 
-### More tutorials and documentation are in the works
+### More tutorials and documentation are in the works.
+
+### If you still don't know how to use, I will make a video and upload to YouTube, the link will be put right here.
 
 # Thanks to
 
