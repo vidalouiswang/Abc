@@ -1,5 +1,5 @@
 #include "app.h"
-#include "../src/src/globalmanager/globalmanager.h"
+#include "../src/globalmanager/globalmanager.h"
 
 void App::setup()
 {
