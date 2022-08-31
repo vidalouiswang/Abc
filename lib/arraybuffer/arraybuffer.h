@@ -1,4 +1,3 @@
-// English:
 /**
  * @file arraybuffer.h
  * @author Vida Wang (support@vida.wang)
