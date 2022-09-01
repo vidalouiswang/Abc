@@ -1,18 +1,65 @@
 (function () {
+
+	// build default config
+	// 建立默认配置
 	let globalConfig = {
+		//server port 服务器端口
 		port: 12345,
+
+		//interval to detect client if online 
+		//检测客户端是否在线的时间间隔
 		sendHelloInterval: 10 * 1000,
+
+		//if client didn't response in time after detection packet sent
+		//it will be kick off by server
+		//如果客户端没有在预定时间内响应服务器
+		//则它会被服务器踢出
 		waitForClientResponseTimeout: 3 * 1000,
+
+		//server will detect client online status or not
+		//服务器是否会主动探测客户端是否在线
 		proactiveDetectClientOnline: true,
+
+		//a(n) administrator or user(real of fake) will send request to server
+		//reqire server send broadcast to those clients belong to this user
+		//this valve is a limitation of times that one client could send this request
+		//if a client send too many find deivce request in a short time
+		//it will be consider as a hacker
+		//一个管理员或者用户向服务器发出查找客户端请求时
+		//服务器会向对应的那些客户端转发请求
+		//这个阈值决定了一个客户端最多能发送多少次查找设备请求
+		//如果一个客户端在短时间内大量发送请求
+		//则这个客户端被认为是非法客户端
 		maxFindDeviceTimes: 100,
+
+		//a key that a client could use this server to transfer data
+		//if "token" has been set, and "enableTokenAuthorize" set to true
+		//then your device must set same token
+		//or it will be kicked off
+		//一个决定设备是否可以使用这个服务器中转数据的密匙
+		//如果这个字段被定义而且 enableTokenAuthorize 被设置为true
+		//那么你的设备也必须设置同样的token
+		//否则会被服务器踢掉
+
+		//attention: this key should be set at "globalConfig.json"
+		//注意: 这个值最好在 "globalConfig.json"中设置
 		token: "",
+
+		//enable token authorization or not
+		//是否启用token认证
 		enableTokenAuthorize: false
 	};
 
 	let fs = require("fs");
 	let WebSocketServer = require("ws").WebSocketServer;
+
+	//encode and decode arraybuffer
 	let { createArrayBuffer, decodeArrayBuffer } = require("./ab");
+
+	//SHA256
 	let getHash = require("./hash");
+
+	//basic server
 	let createServer = require("./create");
 
 	//load config
@@ -21,11 +68,19 @@
 		try { json = JSON.parse(fs.readFileSync("./globalConfig.json").toString()); } catch (e) { json = null; }
 		if (json) {
 			globalConfig = json;
+		} else {
+			//will cover old config file if the data is invalid
+			//如果配置文件数据有问题那么会使用默认配置覆盖它
+			fs.writeFileSync("./globalConfig.json", JSON.stringify(globalConfig));
 		}
 	} else {
+		//will generate one if config does not exists
+		//如果配置文件不存在就生成一个
 		fs.writeFileSync("./globalConfig.json", JSON.stringify(globalConfig));
 	}
 
+	//debug mode will print more information for debug works
+	//调试模式会打印更多调试信息
 	let debugMode = false;
 
 	let enableTokenAuthorize = globalConfig.enableTokenAuthorize ? true : false;
@@ -40,12 +95,19 @@
 
 	let maxFindDeviceTimes = globalConfig.maxFindDeviceTimes || 100;
 
+	//this array stored those messages that need to confirm
+	//这个数组存储那些需要被确认的消息
 	let messages = [];
 
+	//this array stored potential administrators
+	//这个数组存储可能的管理员
 	let administrators = [];
 
+	//this array stored visitors information
+	//这个数组存储访问者信息
 	let visitors = [];
 
+	//黑名单
 	let blacklist = [];
 
 
@@ -79,6 +141,8 @@
 		return u8a;
 	};
 
+	//for type detection
+	//用于检测数据类型
 	function getType(target, moreInfo) {
 		let type = Object.prototype.toString.call(target).toLowerCase().split(" ")[1];
 		type = type.substring(0, type.length - 1);
@@ -131,6 +195,7 @@
 
 
 	//load blacklist
+	//加载黑名单
 	if (fs.existsSync("./blacklist.json")) {
 		let arr = null;
 
@@ -149,6 +214,7 @@
 
 
 	//websocket server instance
+	//websocket 服务器实例
 	let webSocket = null;
 
 	let print = function () {
@@ -217,7 +283,7 @@
 		else
 			command = 0xbb;
 
-			let fromID = getHash(new Date().getTime().toString());
+		let fromID = getHash(new Date().getTime().toString());
 
 		let arr = [
 			command,
