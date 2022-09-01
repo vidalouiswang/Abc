@@ -382,18 +382,20 @@
 	};
 
 	//create server
+	//创建服务器
 	let server = createServer(blacklist, visitors, getType, print, fnFromGetMethod);
 
-	//bind server to websocket
+	//create websocket server
+	//创建websocket服务器
 	webSocket = new WebSocketServer({
 		backlog: 10,
 		maxPayload: 1000 * 1024,
 		server: server,
 		perMessageDeflate: false
-	}, function () {
+	}, function () { });
 
-	});
-
+	//to store firmware data and its information
+	//存储固件数据和对应信息
 	let customOTA = [];
 	process.customOTA = customOTA;
 
@@ -402,26 +404,44 @@
 	});
 
 	//find websocket client by id
+	//通过id查找对应的客户端
 	let findTargetByID = function (id) {
+		//遍历查找
 		for (let i of webSocket.clients) {
 			if (i.id == id) {
 				print("target client found by its id");
 				return i;
 			}
 		}
+
+		//didn't find target by id
+		//没有找到对应id的客户端
 		return {
 			available: false,
 			send: e => { print("coudn't find client by its id"); }
 		};
 	};
 
-	//find websocket clients by user name
+	/**
+	 * find websocket clients by user name
+	 * 通过用户名查找对应的客户端
+	*/
 	let findTargetByUserName = function (userName) {
+
+		//store clients
+		//存储客户端
 		let arr = [];
+
+		//traverse to find client and store it into array
+		//遍历查找客户端存入数组
 		for (let i of webSocket.clients) {
 			if (i.userName == userName) {
+				//admin user name
+				//管理员账户
 				arr.push(i);
 			} else {
+				//other users
+				//其他用户
 				if (i.users) {
 					for (let j of i.users) {
 						if (userName == j) {
@@ -430,13 +450,26 @@
 					}
 				}
 			}
-
 		}
 		return arr;
 	};
 
-	//send data to client
-	let launchData = function (client, arr, data) {
+	/**
+	 * send data to client
+	 * if data has been transfered in
+	 * will send data directly
+	 * or, send array as data
+	 * 
+	 * 向客户端发送数据
+	 * 如果参数传了data(ArrayBuffer)
+	 * 就直接发送这个原始数据
+	 * 否则会发送使用数组生成的array buffer
+	*/
+	let launchData = function (
+		client, //client 客户端
+		arr, //array 数组
+		data //原始数据
+	) {
 		if (!client) {
 			print("no client");
 			return;
@@ -463,19 +496,47 @@
 		return true;
 	};
 
-	//esp32 online
-	//send current timestamp to esp32
+	/**
+	 * @brief
+	 * when esp32 boot and connected to server
+	 * it will send register information to server
+	 * server will send back unix timestamp to sync time
+	 * 
+	 * 当esp32上电连接到服务器之后
+	 * 它会把基础信息发送给服务器
+	 * 服务器会把unix时间戳发回去以同步时间
+	 * 
+	 * @note
+	 * if server enabled token authorization process
+	 * esp32 will also send token authorization information
+	 * 
+	 * 如果服务器开启了令牌认证
+	 * esp32会发送认证信息
+	*/
 	let register = function (client, arr) {
-		//esp32 register or response authorizing request
-
 		if (client.unauthorizedClientTimeout) {
+			//if current client just registered to server and server 
+			//enabled token authorization, this client has a JS timeout timer
+			//server will check information valid or not
+
+			//如果当前客户端刚刚向服务器注册过
+			//而且服务器开启了令牌认证，则当前客户端存在一个JS timeout 定时器
+			//服务器会对认证信息执行检查
 			if (getType(arr[1]) == "b") {
+				//convet bigint to number
+				//把bigint转换为number
 				arr[1] = Number(arr[1]);
 			}
 			if (arr.length == 3 && (getType(arr[1]) == "number") && getType(arr[2]) == "u8a") {
 				let time = arr[1];
 				if ((new Date().getTime()) - time > 3000) {
-					console.log("used hash");
+					//because of the time just synchronized
+					//so the timespan between two timestamps
+					//must very short
+
+					//因为是刚刚同步过的时间
+					//所以两个时间戳的间隔必然很短
+					print("used hash");
 					return;
 				}
 				arr[2] = arr[2].toHex();
@@ -483,6 +544,8 @@
 				hash = getHash(hash);
 
 				if (hash === arr[2]) {
+					//client authorized token authorization
+					//客户端通过令牌认证
 					try { clearTimeout(client.unauthorizedClientTimeout); } catch (e) { }
 					print("client authorized token process");
 				}
@@ -504,9 +567,20 @@
 			//esp32 id
 			client.id = arr[1];
 
-			//admin
+			//this user name is administrator
+			//这个用户名是管理员的
 			client.userName = arr[2];
 
+			/**
+			 * @brief
+			 * client reboot because of OTA update
+			 * will send a message to administrator
+			 * tell admin client online
+			 * 
+			 * 客户端因为OTA升级后重启
+			 * 会发送消息给管理员
+			 * 通知管理员客户端已经上线
+			*/
 			let clientOnline = e => {
 				let indexOfOTATarget = customOTA.findIndex(e => { return e.target == client.id; });
 
@@ -516,7 +590,7 @@
 							0xfb,
 							customOTA[indexOfOTATarget].target,
 							customOTA[indexOfOTATarget].admin,
-							"客户端已上线"
+							"Client online"
 						]);
 					customOTA.splice(indexOfOTATarget, 1);
 				}
@@ -533,12 +607,17 @@
 				}
 			}
 			//send time to client
+			//发送给esp32时间戳
 			launchData(client, [
 				0x80,
 				new Date().getTime()
 			]);
 
 			if (enableTokenAuthorize) {
+				//if token authorization enabled, then send request require esp32
+				//response for this process
+				//如果令牌认证开启
+				//就要求esp32立即回应认证
 				client.pendingTokenAuthorizeTimer = setTimeout(() => {
 					//send token authorizing request
 					let x = parseInt(Math.random() * 0xff);
@@ -550,7 +629,8 @@
 					]);
 
 					client.unauthorizedClientTimeout = setTimeout(() => {
-						// kick client if it doesn't response in time
+						//kick client if it doesn't response in time
+						//如果esp32没有及时回应服务器的认证请求就踢了它
 						client.terminate();
 						console.log(
 							"client kicked because of it didn't response token atuhorize, id: ",
@@ -561,7 +641,11 @@
 		}
 	};
 
-	//esp32 response to server after server send hello
+	/**
+	 * @brief
+	 * esp32 response to server after server send hello
+	 * esp32 回应服务器的打招呼
+	*/
 	let clientResponseToHello = function (client) {
 		print("client response say hello, id: ", client.id);
 		if (client.timeout) {
@@ -572,7 +656,11 @@
 		}, sendHelloInterval);
 	};
 
-	//web client pushed a request update firmware using websocket
+	/**
+	 * @brief
+	 * administrator send a request require esp32 update its firmware OTA
+	 * 管理员发送请求要求esp32使用OTA更新固件
+	*/
 	let webClientRequestOTAUpdateUsingWebsocket = function (client, arr) {
 
 		/*
@@ -590,7 +678,8 @@
 			return;
 		}
 
-		// calc hash
+		//calc hash of firmware that admin uploaded
+		//计算管理员上传的固件的数字摘要
 		let hashOfFirmware = getHash(arr[3]);
 		let hashFromWeb = arr[7];
 		if (getType(hashFromWeb) == "u8a") {
@@ -598,6 +687,8 @@
 		}
 
 		if (!(hashOfFirmware === hashFromWeb)) {
+			//if any data error, cancel update and push back message
+			//如果数据有误，取消升级然后返回消息
 			launchData(client, [
 				0xfb,
 				arr[1],
@@ -608,42 +699,68 @@
 			return;
 		}
 
+		//firmware data valid
+		//固件数据正确
 		let json = {
+			//esp32 id
 			target: arr[1],
+
+			//id of admin that require this esp32 update firmware
+			//要求当前esp32升级固件的管理员的id
 			admin: arr[2],
+
+			//firmware
+			//固件数据
 			data: arr[3],
+
+			//custom OTA data block size
+			//自定义的OTA块大小
 			customBlockSize: arr[6]
 		};
 
+		//find if there is same target
+		//查找是否有相同的升级对象
 		let index = customOTA.findIndex(e => {
 			return e.target == json.target;
 		});
 
 		//add to list
+		//添加到列表
 		if (index >= 0) {
 			customOTA[index] = json;
 		} else {
 			customOTA.push(json);
 		}
 
-		//send request
+		//send request to esp32
+		//发送升级请求到esp32
 		print("send websocket ota request to esp32");
 		launchData(findTargetByID(json.target), [
-			0xab, //websocket ota
-			json.admin, //web client id
-			json.customBlockSize, //block size
-			json.data.length, //total size
-			arr[4], //time
-			arr[5] //hash
+			0xab, //websocket ota, ota升级命令
+			json.admin, //web client id, 要求升级的管理员的id
+			json.customBlockSize, //block size, 本次升级的OTA数据块的大小
+			json.data.length, //total size, 固件总长度
+			arr[4], //time, 时间戳
+			arr[5] //disposable key, 一次性密匙
 		]);
 	};
 
-	//esp32 request ota data block
+	/**
+	 * @brief
+	 * esp32 request OTA data block
+	 * esp32请求OTA数据块
+	*/
 	let esp32RequestOTABlock = function (client, arr) {
 		//1 == esp32 id
 		//2 == block index
 
 		print("find target obj");
+		if (getType(arr[1]) != "u8a") {
+			return;
+		}
+
+		//find object
+		//查找对象
 		let otaTargetObj = customOTA.find(e => { return e.target == arr[1].toHex(); });
 
 		if (!otaTargetObj) {
@@ -652,24 +769,29 @@
 		}
 
 		//block start position
+		//数据块开始位置偏移量
 		let start = arr[2] * otaTargetObj.customBlockSize;
 
 		//slice block
+		//切割数据
 		let block = otaTargetObj.data.slice(start, start + otaTargetObj.customBlockSize);
 
 		//calculate block hash
+		//计算数据块哈希值
 		let hash = "";
 
 		//get sha256 digest
+		//获取SHA256数字摘要
 		hash = new Uint8Array(getHash(block, !0));
 		print("esp32 fetching block:", arr[2]);
 
 		//send block data
+		//发送OTA数据块
 		launchData(client, [
-			0xac, //ota data block command
-			hash, //hash of single block
-			block, //data
-			arr[2] //block index
+			0xac, //ota data block command, ota数据块命令
+			hash, //hash of single block, 当前数据块的哈希值
+			block, //data, 数据块
+			arr[2] //block index, 当前数据块索引
 		]);
 
 		// 0 == 0xfb
