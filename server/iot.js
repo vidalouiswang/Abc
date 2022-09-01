@@ -818,44 +818,22 @@
 			if (otaTargetObj.data) {
 				launchData(findTargetByID(otaTargetObj.admin),
 					[
-						0xae,
+						0xae, //esp32 ota progress command
 						otaTargetObj.target,
 						parseInt(((arr[2] * otaTargetObj.customBlockSize) / otaTargetObj.data.length) * 100)
 					]);
 			}
-		}, 500);
+		}, 100);
 	};
 
-	//web client search esp32
+	/**
+	 * @brief
+	 * user send request require deivce send its basic information
+	 * 用户发出请求要求设备发送自己的基础信息
+	*/
 	let webClientFindDevices = function (client, arr, data) {
 		// 1 == web client id
 		// 2 == user name
-
-		let target = null;
-
-		target = blacklist.find(e => { return e == client.ip; });
-		if (target) {
-			client.terminate();
-			print("a hacker detected on blacklist");
-			return;
-		} else {
-			target = administrators.find(e => { return e.ip == client.ip; });
-			if (target) {
-				if (target.times++ > maxFindDeviceTimes) {
-					blacklist.push(target.ip);
-					client.terminate();
-					print("a hacker detected");
-					return;
-				}
-			} else {
-				administrators.push({
-					ip: client.ip,
-					times: 0
-				});
-			}
-		}
-
-
 
 		if (!client) {
 			return;
@@ -865,13 +843,58 @@
 			return;
 		}
 
-		//set current web client id
+		let target = null;
+
+		//check this client is hacker or not
+		//检测当前客户端是否合法
+		target = blacklist.find(e => { return e == client.ip; });
+		if (target) {
+			//existed hacker will be kicked
+			//非法用户给他踢了
+			client.terminate();
+			print("a hacker detected on blacklist");
+			return;
+		} else {
+			//if current user had been sent same request
+			//then increase its count
+			//如果当前用户发出过相同请求
+			//就增加他的计数
+			target = administrators.find(e => { return e.ip == client.ip; });
+			if (target) {
+				if (target.times++ > maxFindDeviceTimes) {
+					//if current user send too many request
+					//kick him off
+					//如果当前用户不断的发出请求
+					//把他踢了然后把他ip加黑名单里
+					blacklist.push(target.ip);
+					client.terminate();
+					print("a hacker detected");
+					return;
+				}
+			} else {
+				//if this user is new here
+				//then build his document
+				//如果是个新用户
+				//就给他建个档案
+				administrators.push({
+					ip: client.ip,
+					times: 0
+				});
+			}
+		}
+
+		//set current admin client id
+		//一个用户发出查找设备请求的时候顺便把他的id记录一下
 		client.id = arr[1];
 
+		//find valid device of this user
+		//查找这个用户是否拥有设备
 		let targets = findTargetByUserName(arr[2]);
 
-
 		if (targets.length) {
+			//if user has any device
+			//send broadcast to those devices
+			//如果用户有设备就广播这个请求
 			for (let i of targets) {
 				launchData(i, 0, data);
 			}
