@@ -20,7 +20,7 @@ Or you could use your PC or NAS as a server.
 git clone https://github.com/vidalouiswang/Abc.git
 ```
 
-### Step 2: Set Server
+### Step 2: Setup Server
 
 1. Use SSH connect to your VPS or NAS
 2. Install node.js , suppose your OS is Ubuntu
@@ -97,7 +97,7 @@ Now the server configuration is finished, the default port is 12345 , you could 
 
 in file "globalConfig.json".
 
-Or, modify it at the bottom of "iot.js".
+Or, modify it at the bottom in file "iot.js".
 
 Remember restart server if you modified the port.
 
