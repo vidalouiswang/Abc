@@ -814,6 +814,12 @@ void GlobalManager::internalRemoteMsgHandler(
                 {
                     // sync time
                     this->syncTime(output->at(1)->getUint64());
+
+                    //record power on time
+                    if (!this->systemPowerOnTime)
+                    {
+                        this->systemPowerOnTime = output->at(1)->getUint64();
+                    }
                 }
                 else if (output->size() == 3)
                 {
@@ -1396,9 +1402,10 @@ void GlobalManager::initializeBasicInformation()
                 strReason = PI_UNKNOWN;
             }
 
-            strReason += ", " + globalTime->getDate();
+            char buffer[128] = {0};
+            sprintf(buffer, "%s, %llu", strReason.c_str(), global->systemPowerOnTime);
 
-            return new Element(strReason);
+            return new Element(buffer);
         },
         PI_GET_RESET_AND_ONLINE_TIME,
         (PROVIDER_ADMIN | PROVIDER_COMMON));
