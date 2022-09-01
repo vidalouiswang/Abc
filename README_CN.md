@@ -12,44 +12,100 @@
 首先你需要有一台 VPS，安装了 node.js 16。
 或者你也可以用你的电脑或 NAS 当做服务器。
 
-### 克隆
+### 第一步：克隆代码
 
 ```console
 git clone https://github.com/vidalouiswang/Abc.git
 ```
 
-### 上传
+### 第二步：配置服务器
 
-    /server/
-        - pro/
-            - index.html
-        - ab.js
-        - hash.js
-        - create.js
-        - iot.js
-
-这五个文件到你的服务器。
-(这5个文件应该放在同一个目录，文件树只是告诉你应该上传哪5个文件)
-
-### 然后执行命令
+1. 用SSH连接你的VPS或者NAS
+2. 安装 node.js ，这里假设系统为 Ubuntu 
 
 ```console
-npm install ws
+sudo apt-get install nodejs
+```
+
+3. 安装 包管理器
+```console
+sudo apt-get install npm
+```
+
+这一步一般安装的 node.js 版本都比较旧所以需要升级一下版本
+
+```console
+sudo npm install -g n
 ```
 
 ```console
-npm install pm2
+sudo n stable
 ```
+
+现在你的node.js应该已经处于最新稳定版了，可以输入如下命令查看
 
 ```console
-pm2 start iot.js
+node -v
 ```
 
-### 本地
+如果出现 "v16.x" 证明升级已经完成了
+
+4. 如果你的代码克隆到你的个人电脑，你需要上传
+/server/
+    - index.html
+    - ab.js
+    - hash.js
+    - create.js
+    - iot.js
+
+这五个文件到你的服务器，在SSH中按如下步骤操作
+
+```console
+cd ~/
+```
+```console
+mkdir server
+```
+```console
+cd server
+```
+
+然后把上面的五个文件使用你喜欢的方式上传到server文件夹下
+
+如果你直接将代码克隆到服务器则这一步可以省略，直接
+```console
+cd Abc/server
+```
+
+5. 安装基础组件
+```console
+sudo npm install ws
+```
+```console
+sudo npm install -g pm2
+```
+
+6. 开启服务器
+```console
+sudo pm2 start iot.js
+```
+
+服务器已经配置完毕，默认端口为 12345， 可以自己修改，配置在 "globalConfig.json" 中
+
+也可以直接在代码文件 iot.js 最底部修改
+
+如果修改了端口记得重新启动服务器
+```console
+sudo pm2 restart iot.js
+```
+
+请注意在防火墙放行相应端口
+
+### 本地使用
 
 1. 使用 Platform IO 打开根目录。
 2. 定位到 /src/app。 
-3. 然后编辑 app.h 和 app.cpp。
+3. 然后编辑 app.h 和 app.cpp，编程方式和 arduino 一样，在函数 setup 和 loop 中添加代码即可。
 4. 编译上传固件(最好先格式化flash)。
 5. 使用电脑或手机搜索esp32热点，然后连接，注意，某些手机需要手动选择 “在无互联网的情况下连接” 才能正确使用。
 6. 打开浏览器，进入 http://192.168.8.1。

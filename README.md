@@ -14,38 +14,98 @@ This library is for those men who wants to code themselves but they don't have t
 First you need to have a VPS, node.js 16 required.
 Or you could use your PC or NAS as a server.
 
-### Clone
+### Step 1: Clone
 
 ```console
 git clone https://github.com/vidalouiswang/Abc.git
 ```
 
-### Upload
+### Step 2: Set Server
 
-    /server/
-        - pro/
-            - index.html
-        - ab.js
-        - hash.js
-        - create.js
-        - iot.js
-
-five files to your server.
-(These 5 files should be placed in the same directory, the tree only tells you which 5 files should be upload)
-
-### Then run
+1. Use SSH connect to your VPS or NAS
+2. Install node.js , suppose your OS is Ubuntu
 
 ```console
-npm install ws
+sudo apt-get install nodejs
+```
+
+3. Install package manager
+```console
+sudo apt-get install npm
+```
+
+The version of node.js installed is old, maybe 8.x, so you need to upgrade version
+
+```console
+sudo npm install -g n
 ```
 
 ```console
-npm install pm2
+sudo n stable
 ```
 
+Now the version of node.js is lastest stable version, you could use the following command to check
+
 ```console
-pm2 start iot.js
+node -v
 ```
+
+If shows "v16.x" means upgrade successfully
+
+4. If you clone the code into your personal computer, you should upload
+/server/
+    - index.html
+    - ab.js
+    - hash.js
+    - create.js
+    - iot.js
+
+These five files to your server
+
+```console
+cd ~/
+```
+```console
+mkdir server
+```
+```console
+cd server
+```
+
+Then upload five files by any method you like to the folder "server"
+
+This step could be omit if you clone the code directly to your server, do this:
+
+```console
+cd Abc/server
+```
+
+5. Install components
+```console
+sudo npm install ws
+```
+```console
+sudo npm install -g pm2
+```
+
+6. Start server
+```console
+sudo pm2 start iot.js
+```
+
+Now the server config is finished, the default port is 12345 , you could modify it if you like,
+
+in file "globalConfig.json".
+
+Or, modify it at the bottom of "iot.js".
+
+Remember restart server if you modified the port.
+
+```console
+sudo pm2 restart iot.js
+```
+
+Don't forget add rule to let new port could pass through in firewall.
 
 ### Local
 
