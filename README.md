@@ -93,7 +93,7 @@ sudo npm install -g pm2
 sudo pm2 start iot.js
 ```
 
-Now the server config is finished, the default port is 12345 , you could modify it if you like,
+Now the server configuration is finished, the default port is 12345 , you could modify it if you like,
 
 in file "globalConfig.json".
 
