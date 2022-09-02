@@ -140,7 +140,7 @@ sudo pm2 restart iot.js
 
 ### 基础配置演示视频 https://www.bilibili.com/video/BV1zW4y1t78x
 
-### 代码注释状态(全部注释):
+### 代码注释状态(全部的、详细的双语注释，其他文件也有注释，一般都是开发时用的简单英文注释):
 
 * 本地:
 

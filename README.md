@@ -146,7 +146,7 @@ More information and examples refer to /examples/.
 
 ### If you still don't know how to use, I will make a video and upload to YouTube, the link will be put right here.
 
-### Code comments status(full comments):
+### Code comments status(full and detailed comments):
 
 * Local:
 
