@@ -10,7 +10,7 @@ The file /lib/mydb/mydb.h and mydb.cpp declared and defined 3 instances of class
 
 The first one is main database for system use, you app could use this database to store data, but this is not recommended.
 
-The second one stored other users information, you SHOULD NOT modify any content by your way in this database.
+The second one stored other users information, you **SHOULD NOT** modify any content by your way in this database.
 
 The last one is for user app, you could do any action to this instance.
 

@@ -397,7 +397,7 @@
 	//to store firmware data and its information
 	//存储固件数据和对应信息
 	let customOTA = [];
-	process.customOTA = customOTA;
+	//process.customOTA = customOTA;
 
 	webSocket.on("error", function (err) {
 		console.log(err);
@@ -916,7 +916,14 @@
 		launchData(findTargetByID(arr[1]), 0, data);
 	};
 
-	//esp32 send basic information after web client request matched devices
+	/**
+	 * @brief
+	 * esp32 accepted find defice request and user passed
+	 * authorization, then esp32 will send its basic information
+	 * 
+	 * esp32接收到了寻找设备请求而且用户已通过认证
+	 * 那么esp32就会发送回来它的基础信息
+	*/
 	let esp32ResponseFindDevice = function (client, arr, data) {
 		/*
 			0 response->push_back(new Element(CMD_FIND_DEVICE_RESPONSE));                           // response to find device 0xaf
@@ -927,94 +934,232 @@
 			5 response->push_back(new Element((uint32_t)(ESP.getFreeHeap())));                      // free heap
 			6 response->push_back(new Element(this->nickname->getString().c_str()));                // nickname of this board
 			7 response->push_back(new Element(this->UniversalID->getHex().c_str()));                // id of this board
-			8 response->push_back(new Element(SYSTEM_VERSION));                                  // current structure version
+			8 response->push_back(new Element(SYSTEM_VERSION));                                  	// current structure version
 			9 response->push_back(new Element(APP_VERSION));                                        // app version
 			10 response->push_back(new Element(this->bufferProviders, this->bufferProvidersLength)); // providers buffer
 		*/
-		//console.log("device response find device");
-		//console.log(arr);
+
 		if (!client) {
 			return;
 		}
 
+		//store nickname for debug
+		//this could be removed
+		//存储一下昵称方便调试信息显示
+		//这个可以删除
 		client.nickname = arr[6];
 
+		//directly route original data to user
+		//直接将原始数据路由到用户
 		launchData(findTargetByID(arr[1]), 0, data);
 
 	};
 
-	//esp32 send log to web client
+	/**
+	 * @brief
+	 * esp32 send log info to administrator
+	 * esp32发送记录信息给管理员
+	*/
 	let esp32SendLogToWebClient = function (arr, data) {
 		// 0 == 0xfb
 		// 1 == board id, string
-		// 2 == web client id, string
+		// 2 == admin id, string
 		// 3 == log, string
 
 		launchData(findTargetByID(arr[2]), 0, data);
 	};
 
+	/**
+	 * @brief
+	 * this function handle all data sent to this server
+	 * do type and security check
+	 * and route it to realated part
+	 * 
+	 * 这个函数处理所有发送到这个服务器的信息
+	 * 执行类型和安全检查
+	 * 然后路由到相应部分
+	*/
 	function websocketIncomingMsgHandler(data, isRepeat) {
+
+		//the data must be ArrayBuffer
+		//负载数据类型必须是ArrayBuffer
 		if (!getType(data) == "ab") {
 			return;
 		}
 
+		//because of code design, the minmium legal data length is 2
+		//因为代码设计，最小的合法数据长度是2个字节
 		if (data.byteLength < 2) {
 			return;
 		}
 
 		print("decode arraybuffer from client: ", this.id);
 
+		//decode original data to an array
+		//解码原始数据到一个数组
 		let arr = decodeArrayBuffer(data);
 
+		//check array
+		//检查数组
 		if (!arr || !arr.length) {
 			return;
 		}
 
+		//the first element in array is command, it could be 1 byte or 8 bytes
+		//when long command accepted(8 bytes), the type is BigInt
+		//数组的第一个元素是命令，它可能是1个字节或者8个字节
+		//当接收到一个长命令时，它的类型是BigInt
 		let command = arr[0];
+
+		//check command type, basic command or long command
+		//检测命令类型，基础命令还是长命令
 		let commandType = getType(command, !0);
 
 		if (commandType === "b") {
+			//if it's a long command, copy it
+			//如果是个长命令, 拷贝一份
 			let extented = command; //bigint
+
+			//then got basic command from it
+			//然后从里面取出基础命令
 			command &= 0xffn;
+
+			//then convert it to Number type for process
+			//然后将其转换为Number类型方便处理
 			command = Number(command);
+
+			//if one long command had been processed and server call this function
+			//the argument "isRepeat" will be set to true
+			//当一个长命令已经被处理过，当前请求是服务器自己发出的
+			//参数 "isRepeat" 会被设置为 true
 			if (!isRepeat) {
+				//current request is new one
+				//当前请求是个新的请求
+
+				//got mask byte
+				//refer to /doc/extented_command_specification.txt
+				//取出掩码字节
+				//参考 /doc/extented_command_specification.txt
 				let header = (extented & 0xff00000000000000n) >> 56n;
 				header = Number(header);
+
+				/**
+				 * got id of this message
+				 * id is not available when user or another send a request
+				 * to require another device do something
+				 * only available when deivce confirmed message
+				 * 
+				 * example:
+				 * 
+				 * A(user or a device) -> send a message need to confirm -> B(another deivce)
+				 * id is zero
+				 * 
+				 * B -> report to server message has been confirmed -> server
+				 * id is available
+				 *
+				 * 取出这个消息的id
+				 * id在用户或另一个设备请求一个设备执行什么操作时是 不 可用的
+				 * id仅在设备确认消息时才是可用的
+				 * 
+				 * 举例:
+				 * 
+				 * A(用户或者一个设备) -> 发送了一个需要确认的消息 -> B(另一个设备)
+				 * 此时 id 是 0
+				 * 
+				 * B -> 报告服务器消息已被确认 -> 服务器
+				 * 此时 id 可用
+				*/
 				let id = extented & 0x00ffffffff000000n;
 				id = Number(id);
 
 
 				if (header & 0b01000000) {
-					// a client send a message shoud be confirmed
+					//a client send a message shoud be confirmed
+					//一个客户端发送了一个需要被确认的消息
+
+					//currently not use
+					//当前未使用
 					let targetIDPosition = header & 0b00011000;
+
+					//calculate hash of message
+					//计算消息的数字摘要
 					let msgHash = getHash(new Uint8Array(data).toHex() + new Date().getTime().toString(), !0);
+
+					//got first 4 bytes from hash
+					//取出数字摘要的奇案4个字节
 					let msgID = (msgHash[0] << 24) | (msgHash[1] << 16) | (msgHash[2] << 8) | (msgHash[3]);
+
+					//this number is the id of this message
+					//这个数字就是这个消息的id
 					msgID = Math.abs(msgID);
 
+					//convert id to BigInt
+					//把 id 转换为 BigInt 类型
 					msgID = BigInt(msgID);
+
+					//left shift it for combine it to original long command
+					//左移 id 让其位置匹配对应位置
 					msgID <<= 24n;
 
+					//fill id to original long command
+					//填充 id 到原始的长命令部分
 					arr[0] |= msgID;
 
+					//encode new array to ArrayBuffer
+					//编码新的数组到ArrayBuffer
+					//这一步其实可以直接将 id 按位或到 data 的对应部分
+					//但是之前是这么写的就先这么用吧
 					data = createArrayBuffer(arr);
+
+					//create a object for confirm message
+					//为确认消息创建一个对象
 					let json = {
+						//message id
+						//消息 id
 						msgID: msgID,
+
+						//original data, for resend to target when target didn't reponse in time
+						//原始数据，用来当目标未即使确认消息时重新发送
 						data: data,
+
+						//indicate this object is disposed or not
+						//指示当前对象是否还有用
 						disposed: false,
+
+						//last send message time
+						//最后一次发送消息的时间
 						lastSendTime: new Date().getTime(),
+
+						//indicate how many times that current message had been sent 
+						//指示当前消息已经被发送多少次了
 						times: 0,
+
+						//sender or receiver
+						//发送者 或 接收者
 						client: this
 					};
 
+					//currently not use
+					//当前未使用
 					if (targetIDPosition) {
 						json.targetID = arr[targetIDPosition];
 					}
+
+					//push object into array
+					//对象添加到数组
 					messages.push(json);
 				}
 
 				if (header & 0b00100000) {
-					// target confirm message has been processed
+					//target confirm message has been processed
+					//目标确认消息已被处理 
+
+					//find message object
+					//找到对应的消息对象
 					let msgObj = messages.find(e => { return e.msgID == id; });
+
+					//mark it as disposed
+					//将其标记为没用的
 					if (msgObj) {
 						msgObj.disposed = true;
 					}
@@ -1022,63 +1167,87 @@
 				}
 			}
 		} else {
+			//the type of command only support 
+			//unsigned char(uint8) and unsigned long long(uint64)
+			//if it's not a BigInt, it must be uint8
+			//or, consider it is illegal command
+
+			//命令的类型仅支持单字节和 8 字节
+			//它不是BigInt就一定是单字节
+			//否则将其视为非法命令
 			if (commandType != "u8") {
 				return;
 			}
 		}
 
+		//for compatibility with BigInt types, decodeArrayBuffer function didn't convert
+		//8 bytes number from BigInt to Number
+		//so manually convert it
+		//为了兼容BigInt类型，解码时没有直接把 8 字节整数转换为Number类型
+		//所以这里手动转换一下
 		for (let i = 0; i < arr.length; ++i) {
 			if (getType(arr[i]) == "b") {
 				arr[i] = Number(arr[i]);
 			}
 		}
 
+		//message delivery
+		//消息投递
 		switch (command) {
 			case 0x0c:
 				//client send hello
+				//客户端主动打招呼
 				try { this.send(createArrayBuffer([0xc0])); } catch (e) { }
 				break;
 
 			case 0xc0:
 				//client send world
+				//客户端回应服务器的打招呼
 				clientResponseToHello(this);
 				break;
 
 			case 0x80:
-				//esp32 register
+				//esp32 register itself basic information after boot or reconnected
+				//esp32 上电或者断线后重连向服务器注册自身信息
 				register(this, arr);
 				break;
 
 			case 0xab:
-				//web client send ota request
+				//administrator send request require esp32 start OTA update process
+				//管理员发送请求要求esp32开始OTA升级
 				webClientRequestOTAUpdateUsingWebsocket(this, arr);
 				break;
 
 			case 0xac:
 				//esp32 request ota block
+				//esp32 请求OTA升级数据块
 				print("esp32 fetch block=======================================================================");
 				esp32RequestOTABlock(this, arr);
 				break;
 
 			case 0xaf:
-				//find device
+				//user send find device request
+				//用户发出请求查找设备
 				webClientFindDevices(this, arr, data);
 				break;
 
 			case 0xbb:
-				//web client send command to esp32
+				//user or a device send request to esp32 require to execute provider
+				//用户或设备发送请求到esp32要求执行provider
 				webClientSendCommand(arr, data);
 
 				break;
 
 			case 0xfa:
 				//device send back basic information
+				//设备发回它的基础数据
 				esp32ResponseFindDevice(this, arr, data);
 
 				break;
 
 			case 0xfb:
 				//esp32 send log
+				//esp32 发送信息
 				esp32SendLogToWebClient(arr, data);
 				break;
 
@@ -1087,12 +1256,19 @@
 		}
 	};
 
+	/**
+	 * @brief
+	 * server proactive detect client online or not
+	 * 服务器主动探测客户端是否在线
+	*/
 	function fnProactiveDetectClientOnline(client) {
 		//server say hello
+		//服务器发出一个打招呼消息
 		client.sentHello = !0;
 		client.send(createArrayBuffer([0x0c]));
 
 		//kick off client if it didn't response in time
+		//如果客户端没有及时响应服务器的打招呼消息就踢了它
 		client.timeout = setTimeout(() => {
 			client.terminate();
 			print("client didn't response server say hello, kicked");
@@ -1100,49 +1276,69 @@
 	};
 
 	//callback for client in
+	//有新的客户端连接到服务器时的回调函数
 	webSocket.on("connection", function connection(client, req) {
 		//set message type
+		//设置消息类型
 		client.binaryType = "arraybuffer";
 
+		//store basic request
+		//保存基础请求
 		client.req = req;
 
-		//check if client online
+		//server will send hello to client repeatedly if proactiveDetectClientOnline is enabled
+		//如果服务器打开了主动探测客户端是否在线功能则会周期性的发送打招呼数据
 		if (proactiveDetectClientOnline) {
 			client.t = setTimeout(e => {
 				fnProactiveDetectClientOnline(client);
 			}, sendHelloInterval);
 		}
 
+		//get user ip address
+		//获取用户的ip地址
 		client.ip = /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.exec(client.req.socket.remoteAddress);
 
+		//kick it off if ip is empty
+		//获取不到ip直接给它踢了
 		if (!client.ip) {
 			client.terminate();
 			print("a hacker detected 0");
 			return;
 		}
 
+		//store ip
+		//保存ip
 		client.ip = client.ip.toString();
 
+		//basically this is not necessary
+		//基本上这个是不需要的
 		if (getType(client.ip) != "string") {
 			client.terminate();
 			print("a hacker detected 1");
 			return;
 		}
 
+		//kick it off if ip is empty string
+		//空ip直接给它踢了
 		if (!client.ip.length) {
 			client.terminate();
 			print("a hacker detected 2");
 			return;
 		}
 
+		//check this user if in blacklist
+		//检测这个用户是否是黑名单上的
 		let hacker = blacklist.find(e => { return e == client.ip; });
 		if (hacker) {
+			//kick it off if it on blacklist
+			//如果在黑名单里直接给它踢了
 			client.terminate();
 			print("a hacker detected 3");
 			return;
 		}
 
-
+		//clear all timer if error occured
+		//如果出现出错误把所有定时器全取消了
 		client.on("error", function (err) {
 			try { clearTimeout(client.t); } catch (e) { }
 			try { clearTimeout(client.timeout); } catch (e) { }
@@ -1150,6 +1346,8 @@
 			try { clearTimeout(client.pendingTokenAuthorizeTimer); } catch (e) { }
 		});
 
+		//clear all timer if client offline
+		//如果客户端掉线了把所有定时器全取消了
 		client.on("close", function () {
 			try { clearTimeout(client.t); } catch (e) { }
 			try { clearTimeout(client.timeout); } catch (e) { }
@@ -1158,11 +1356,27 @@
 			console.log("client offline, id: ", client.id);
 		});
 
+		//handle client message
+		//处理客户端的消息
 		client.on("message", function (data) {
-			websocketIncomingMsgHandler.apply(client, [data, false]);
+			websocketIncomingMsgHandler.apply(
+				client,
+				[
+					//message
+					//消息
+					data, 
+
+					//this message is from client, so set it to false
+					//这个消息时客户端发来的，所以给他设置为false
+					false
+				]
+			);
 		});
 	});
 
+	//this timer handle those messages which should be confirm but
+	//target didn't response
+	//这个定时器处理那些需要被确认但是目标没有及时响应的消息
 	setInterval(() => {
 		if (messages.length) {
 			let t = new Date().getTime();
@@ -1183,6 +1397,8 @@
 		}
 	}, 1000);
 
+	//this timer handle repeat broadcast and vistors requests
+	//这个定时器处理重复的广播和游客请求
 	setInterval(() => {
 		for (let i = 0; i < administrators.length; ++i) {
 			if (--administrators[i].times <= 0) {
@@ -1199,6 +1415,9 @@
 	//if someone attck your server and store blacklist in related function
 	//it may use much cpu of server
 	//so store blacklist using timer
+	//如果有人使用穷举法不停地发出请求，而在作出决定时保存黑名单
+	//这会消耗较多的CPU和磁盘IO
+	//所以使用定时器来保存黑名单
 	setInterval(() => {
 		fs.writeFile("./blacklist.json", JSON.stringify(blacklist), function (err) {
 			if (err) {
@@ -1207,5 +1426,15 @@
 		});
 	}, 10000);
 
-	server.listen(globalConfig.port || 12345);
+	if (getType(globalConfig.port) != "number") {
+		globalConfig.port = 12345;
+	}
+
+	if (globalConfig.port < 0 || globalConfig.port > 65535) {
+		globalConfig.port = 12345;
+	}
+
+	//start listen
+	//开启服务器监听
+	server.listen(globalConfig.port);
 })();
