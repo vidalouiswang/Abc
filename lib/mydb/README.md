@@ -19,7 +19,7 @@ The last one is for user app, you could do any action to this instance.
 一个键值对型内存数据库，方便访问不同种类的数据。
 头文件中有完整的注释，更多信息请参阅mydb.h。
 
-文件 /lib/mydb/mydb.h 和 mydb.cpp 中生命和定义了3个数据库实例，它们是：
+文件 /lib/mydb/mydb.h 和 mydb.cpp 中声明和定义了3个数据库实例，它们是：
     - db
     - dbUser
     - dbApp
