@@ -98,7 +98,7 @@ module.exports = function (blacklist, visitors, getType, print, fnProvider) {
         //when use http get method to execute provider
         //当使用http get方法请求执行provider时
         if (/exec_provider/.test(pathName)) {
-            let fromID = fnProvider(urlObj.query);
+            let fromID = fnProvider(urlObj.query, res);
 
             //if function return ""
             //means wait for response
