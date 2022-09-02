@@ -14,7 +14,7 @@ This library is for beginners who want to write their own code, but don't have m
 ### Features
 
 * Built-in convenient OTA update without extra code.
-* Rollback firmware when new frimware error at boot state automatically(esp32-arduino library closed this function from esp-idf, this library implemented this feature without modify SDK that downloaded).
+* Rollback firmware when new frimware error at boot state automatically(esp32-arduino library closed this function from esp-idf, this library implemented this feature without modify SDK that downloaded by Platform IO).
 * Easy method to store or transfer integer, string, binary data without other format(like json).
 * Built-in convenient RAM database could store key-value typed data, based on LittleFS(esp-idf has this function but it don't has wear-leveling, according to offical document).
 * Stable and fast Websocket implement.
