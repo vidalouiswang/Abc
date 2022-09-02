@@ -129,6 +129,16 @@ More information and examples refer to /examples/.
 
 ### If you still don't know how to use, I will make a video and upload to YouTube, the link will be put right here.
 
+### Code comments status(full comments):
+* Header file:
+
+    * Almost all header files
+
+* Source File:
+
+    * /lib/arraybuffer/arraybuffer.cpp
+    * /src/main/main.cpp
+
 # Thanks to
 
 Thanks to the entire staff of Espressif, we have a cheap and easy-to-use ESP32 and other chips.

@@ -124,6 +124,16 @@ sudo pm2 restart iot.js
 
 ### 基础配置演示视频 https://www.bilibili.com/video/BV1zW4y1t78x
 
+### 代码注释状态(全部注释):
+* 头文件:
+
+    * 几乎所有的头文件
+
+* 源文件:
+
+    * /lib/arraybuffer/arraybuffer.cpp
+    * /src/main/main.cpp
+    
 # 感谢
 
 感谢乐鑫的全体工作人员，让我们拥有了便宜好用的ESP32以及其他芯片。
