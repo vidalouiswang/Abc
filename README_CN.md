@@ -172,6 +172,8 @@ sudo pm2 restart iot.js
 
 [Platform IO](https://github.com/platformio)
 
+[ws](https://github.com/websockets/ws)
+
 [Brix](https://github.com/brix/crypto-js)
 
 [Felix Biego](https://github.com/fbiego/ESP32Time)

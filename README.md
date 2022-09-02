@@ -178,6 +178,8 @@ Thanks to all the developers of VSCode and Platform IO, we have an easy-to-use i
 
 [Platform IO](https://github.com/platformio)
 
+[ws](https://github.com/websockets/ws)
+
 [Brix](https://github.com/brix/crypto-js)
 
 [Felix Biego](https://github.com/fbiego/ESP32Time)
