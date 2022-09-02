@@ -110,6 +110,8 @@
 	//黑名单
 	let blacklist = [];
 
+	let methodGetWaitForResponse = [];
+
 
 
 
@@ -243,7 +245,7 @@
 	//交由给主要处理器处理
 	//目前不支持返回信息
 	//之后会添加这个功能
-	function fnFromGetMethod(obj) {
+	function fnFromGetMethod(obj, res) {
 		//tid == target id
 		//cpid == custom provider id
 		//t == unix timestamp
@@ -372,6 +374,48 @@
 			//自定义 provider id
 			obj.cpid
 		];
+
+
+		//return provider return value 
+		//返回provider的返回值
+
+		//check value and length
+		//检测值和长度
+		if (obj.waitForResponse && obj.waitForResponse.length) {
+
+			//check if legal
+			//检查参数是否合法
+			if (/[0-9]/.test(obj.waitForResponse)) {
+
+				//convert to Number
+				//转换为整数
+				let timeout = parseInt(obj.waitForResponse);
+
+				//check argument
+				//检查参数
+				if (timeout) { //NaN
+
+					//check legitimacy
+					//检查合法性
+					if (timeout > 0 && timeout < 10 * 1000) {
+
+						//create object
+						//创建对象
+						let json = {
+							userID: fromID,
+							t: new Date().getTime() + timeout,
+							res: res
+						};
+
+						//add to queue
+						//添加到队列
+						methodGetWaitForResponse.push(json);
+
+						return "";
+					}
+				}
+			}
+		}
 
 		let buffer = createArrayBuffer(arr);
 
@@ -966,7 +1010,44 @@
 		// 2 == admin id, string
 		// 3 == log, string
 
-		launchData(findTargetByID(arr[2]), 0, data);
+		//decide which method should transfer return value to source
+		//决定什么方法传输返回值
+		let clientFromHttpGetIndex = methodGetWaitForResponse.findIndex(e => { return e.userID == arr[2]; });
+		if (clientFromHttpGetIndex < 0) {
+			//websocket
+			launchData(findTargetByID(arr[2]), 0, data);
+		} else {
+			//http
+
+			//convert argument
+			//转换参数
+
+			let rtnValue = arr[3];
+			if (!rtnValue) {
+				return;
+			}
+
+			let type = getType(rtnValue);
+
+			if (type == "number") {
+				rtnValue = rtnValue.toString();
+			} else if (type == "u8a") {
+				rtnValue = u8a.toHex();
+			} else {
+				if (type != "string") {
+					return;
+				}
+			}
+
+			//return value from provider
+			//返回provider的返回值
+			methodGetWaitForResponse[clientFromHttpGetIndex].res.end(rtnValue);
+
+			//remove object
+			//移除对象
+			methodGetWaitForResponse.splice(clientFromHttpGetIndex, 1);
+
+		}
 	};
 
 	/**
@@ -1364,7 +1445,7 @@
 				[
 					//message
 					//消息
-					data, 
+					data,
 
 					//this message is from client, so set it to false
 					//这个消息时客户端发来的，所以给他设置为false
@@ -1424,6 +1505,21 @@
 				print("error ocuured when store blacklist");
 			}
 		});
+
+		let t = new Date().getTime();
+
+
+		//remove used object, those object is from http get method
+		//wait for response
+		//移除以前的对象，这些对象是那些从 http get 等待返回值的对象
+		//但是超时未返回 返回值
+		if (methodGetWaitForResponse.length) {
+			for (let i = 0; i < methodGetWaitForResponse.length; ++i) {
+				if (methodGetWaitForResponse[i].t < t) {
+					methodGetWaitForResponse.splice(i, 1);
+				}
+			}
+		}
 	}, 10000);
 
 	if (getType(globalConfig.port) != "number") {

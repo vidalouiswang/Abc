@@ -99,7 +99,13 @@ module.exports = function (blacklist, visitors, getType, print, fnProvider) {
         //当使用http get方法请求执行provider时
         if (/exec_provider/.test(pathName)) {
             let fromID = fnProvider(urlObj.query);
-            res.end(fromID);
+
+            //if function return ""
+            //means wait for response
+            //如果函数返回空字符串
+            //表示需要等待返回值
+            if (fromID.length)
+                res.end(fromID);
             return;
         }
 
