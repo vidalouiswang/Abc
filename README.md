@@ -22,7 +22,7 @@ This library is for beginners who want to write their own code, but don't have m
 * One line code to encrypt or decrypt data with AES-256-CBC.
 * More features are in development...
 
-These features especially designed for beginners and, they are easy to use and have strong scalability. For experts, please ignore.
+These features especially designed for beginners, easy to use and have strong scalability. For experts, please ignore.
 
 # How to use
 
