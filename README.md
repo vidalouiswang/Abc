@@ -1,15 +1,32 @@
 # Abc
 
+[中文](https://github.com/vidalouiswang/Abc/blob/main/README_CN.md)
+
 ### A basic esp32 library for beginners(Beta)
 
-[中文](https://github.com/vidalouiswang/Abc/blob/main/README_CN.md)
+## Brief
 
 This library work with Espressif offical framework esp32-arduino 2.0.3.
 Only had tested on esp32 dev module.
 
-This library is for those men who wants to code themselves but they don't have too much code skills or they are beginners, then you could start from here to learn how to program esp32.
+This library is for beginners who want to write their own code, but don't have much foundation. This library can be your starting point for learning esp32, you can use not only all the functions of esp32-arduino, but also esp-idf function, you can learn how to develop ESP32 from simple to further.
+
+### Features
+
+* Built-in convenient OTA update without extra code.
+* Rollback firmware when new frimware error at boot state automatically(esp32-arduino library closed this function from esp-idf, this library implemented this feature without modify SDK that downloaded).
+* Easy method to store or transfer integer, string, binary data without other format(like json).
+* Built-in convenient RAM database could store key-value typed data, based on LittleFS(esp-idf has this function but it don't has wear-leveling, according to offical document).
+* Stable and fast Websocket implement.
+* One line code to get SHA1 and SHA256 using ESP32 hardware acceleration with variant types of input data.
+* One line code to encrypt or decrypt data with AES-256-CBC.
+* More features are in development...
+
+These features especially designed for beginners and, they are easy to use and have strong scalability. For experts, please ignore.
 
 # How to use
+
+IDE requirement: Visual studio code with Platform IO installed.
 
 First you need to have a VPS, node.js 16 required.
 Or you could use your PC or NAS as a server.
