@@ -70,7 +70,7 @@ node -v
 
 If shows "v16.x" means upgrade successfully
 
-4. If you clone the code into your personal computer, you should upload
+6. If you clone the code into your personal computer, you should upload
 /server/
     - index.html
     - ab.js
@@ -98,15 +98,12 @@ This step could be omit if you clone the code directly to your server, do this:
 cd Abc/server
 ```
 
-5. Install components
+7. Install components
 ```console
 sudo npm install ws
 ```
-```console
-sudo npm install -g pm2
-```
 
-6. Start server
+8. Start server
 ```console
 sudo pm2 start iot.js
 ```

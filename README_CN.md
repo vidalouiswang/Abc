@@ -67,7 +67,7 @@ node -v
 
 如果出现 "v16.x" 证明升级已经完成了
 
-4. 如果你的代码克隆到你的个人电脑，你需要上传
+6. 如果你的代码克隆到你的个人电脑，你需要上传
 /server/
     - index.html
     - ab.js
@@ -94,15 +94,12 @@ cd server
 cd Abc/server
 ```
 
-5. 安装基础组件
+7. 安装基础组件
 ```console
 sudo npm install ws
 ```
-```console
-sudo npm install -g pm2
-```
 
-6. 开启服务器
+8. 开启服务器
 ```console
 sudo pm2 start iot.js
 ```
