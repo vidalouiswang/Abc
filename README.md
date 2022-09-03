@@ -40,23 +40,19 @@ git clone https://github.com/vidalouiswang/Abc.git
 ### Step 2: Setup Server
 
 1. Use SSH connect to your VPS or NAS
-2. Install node.js , suppose your OS is Ubuntu
 
-```console
-sudo apt-get install nodejs
-```
+2. Install package manager , suppose your OS is Ubuntu
 
-3. Install package manager
 ```console
 sudo apt-get install npm
 ```
 
-The version of node.js installed is old, maybe 8.x, so you need to upgrade version
-
+3. Install n module
 ```console
 sudo npm install -g n
 ```
 
+4. Install Node.js
 ```console
 sudo n stable
 ```

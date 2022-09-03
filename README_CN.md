@@ -36,24 +36,20 @@ git clone https://github.com/vidalouiswang/Abc.git
 
 ### 第二步：配置服务器
 
-1. 用SSH连接你的VPS或者NAS
-2. 安装 node.js ，这里假设系统为 Ubuntu 
+1. 使用SSH连接你的VPS
 
-```console
-sudo apt-get install nodejs
-```
+2. 安装 包管理器 , 假设你的系统是 Ubuntu
 
-3. 安装 包管理器
 ```console
 sudo apt-get install npm
 ```
 
-这一步一般安装的 node.js 版本都比较旧所以需要升级一下版本
-
+3. 安装n模块
 ```console
 sudo npm install -g n
 ```
 
+4. 安装 Node.js
 ```console
 sudo n stable
 ```

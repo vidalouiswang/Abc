@@ -32,7 +32,7 @@
             let div = create();
             let btn = null;
             let helperID = getHash(this.boardID + this.providerID + this.name);
-            div.id = helperID;
+            div.id = helperID + "_container";
             let mask = this.mask;
 
             let lengthOfAArguments = mask & 0b00000111;
