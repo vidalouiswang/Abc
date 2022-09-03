@@ -68,7 +68,11 @@ Now the version of node.js is lastest stable version, you could use the followin
 node -v
 ```
 
-If shows "v16.x" means upgrade successfully
+If shows "v16.x" means Node.js installed correctly, if it show old version, like "v8.x", you should input command
+
+```console
+hash -r
+```
 
 6. If you clone the code into your personal computer, you should upload
 /server/
