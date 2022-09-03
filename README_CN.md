@@ -54,6 +54,11 @@ sudo npm install -g n
 sudo n stable
 ```
 
+5. 安装 pm2
+```console
+sudo npm install -g pm2
+```
+
 现在你的node.js应该已经处于最新稳定版了，可以输入如下命令查看
 
 ```console

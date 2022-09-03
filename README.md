@@ -57,6 +57,11 @@ sudo npm install -g n
 sudo n stable
 ```
 
+5. Install pm2
+```console
+sudo npm install -g pm2
+```
+
 Now the version of node.js is lastest stable version, you could use the following command to check
 
 ```console
