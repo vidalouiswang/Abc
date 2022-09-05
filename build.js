@@ -45,10 +45,16 @@ let child_process = require("child_process"), fs = require("fs");
 
     // load names of app
     let refresh = function () {
+        //load all files and directories
         apps = fs.readdirSync("./app");
         for (let i = 0; i < apps.length; i++) {
-            if (!fs.statSync(appsRoot + apps[i]).isDirectory()) {
+            if (
+                !fs.statSync(appsRoot + apps[i]).isDirectory() //remove other files
+                ||
+                apps[i].trim().endsWith(".md") //remove readme
+            ) {
                 apps.splice(i, 1);
+                i = i >= 0 ? i - 1 : i;
             }
         }
 

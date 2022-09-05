@@ -1,2 +1,3 @@
-cd ~/Documents/PlatformIO/Projects/Abc/
+#!/bin/sh
+cd $(dirname $0)
 node build.js

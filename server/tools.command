@@ -1,2 +1,3 @@
-cd ~/Documents/PlatformIO/Projects/Abc/server/
+#!/bin/sh
+cd $(dirname $0)
 node tools.js
