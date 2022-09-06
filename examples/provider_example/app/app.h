@@ -7,7 +7,7 @@
  * app名称
  *
  */
-#define APP_NAME "Class ArrayBuffer"
+#define APP_NAME "Provider"
 
 /**
  * @brief version of app
@@ -75,23 +75,23 @@
 /**
  * @brief default app class
  * you could modify class name, attention attached
- *
+ * 
  * 默认的app类
  * 你可以修改这个类的名字，请阅读注意事项
- *
+ * 
  * @attention the name of instance must be "app"
  * refer to the tail of the file "app.cpp"
- *
+ * 
  * 类实例的名称必须为 "app"，查看 "app.app" 的尾部
- *
+ * 
  * @note if you modified the name of he instance,
  * you should also modify the name in the file "main.cpp"
  * not recommended for beginner
- *
- * 如果你修改了类实例的名字，你也应该一同修改文件 "main.cpp"
+ * 
+ * 如果你修改了类实例的名字，你也应该一同修改文件 "main.cpp" 
  * 里的名字
  * 不推荐新手做此操作
- *
+ * 
  */
 class App
 {
@@ -100,23 +100,23 @@ public:
     /**
      * @brief default constructor, attention attached!
      * 默认构造函数，请阅读注意事项!
-     *
+     * 
      * @attention if you declared and define other constructors
      * you should NOT do any actions except set default value
      * for variables.
      * Because the instance of class App will be define in the tail
      * of the app.cpp, and that is NOT included in the system
      * GlobalManager::makeSureNewFirmwareValid() measurement scope,
-     * if any action in constructor cause ESP32 panic reset,
-     * you will lost connection of this ESP32, then you have to
+     * if any action in constructor cause ESP32 panic reset, 
+     * you will lost connection of this ESP32, then you have to 
      * use hardware serial to upload new firmware.
-     *
+     * 
      * 如果你定义了其他构造函数，请确保在构造函数内 [不要] 做 除了给变量赋值
      * 以外的其他操作，因为类App的实例在 app.cpp 文件的尾部被实例化，
      * 而这不在系统 GlobalManager::makeSureNewFirmwareValid() 的
      * 监测范围内，如果构造函数内有任何操作导致ESP32复位，你会丢失与这个
      * ESP32的连接，此时你只能再次用硬件串口重新上传固件。
-     *
+     * 
      */
     inline App(){};
     inline ~App(){};

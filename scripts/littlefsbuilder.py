@@ -18,5 +18,9 @@ env.Execute("node "+ projectRootPath + "scripts/replaceHtml.js " + projectRootPa
 def copyFirmware(source, target, env):
     env.Execute("node "+ projectRootPath +"scripts/copyFirmware.js " + projectRootPath)
 
+def OTA(source, target, enc):
+    env.Execute("node "+ projectRootPath +"scripts/autoOTA.js " + projectRootPath)
+
 env.AddPostAction("buildprog", copyFirmware)
+env.AddPostAction("buildprog", OTA)
 env.AddPostAction("upload", copyFirmware)

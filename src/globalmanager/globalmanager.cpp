@@ -226,7 +226,7 @@ void GlobalManager::makeSureNewFirmwareValid()
             if (pendingOTA.getNumber() == 0x01)
             {
                 this->isNewFirmwareBoot = true;
-                if (pendingOTABootCount.getNumber() > ERROR_BOOT_COUNT_VALVE)
+                if (pendingOTABootCount.getNumber() >= ERROR_BOOT_COUNT_VALVE)
                 {
                     ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware has error, rollback");
                     (*(db("pendingOTA"))) = 0;

@@ -1,5 +1,14 @@
+/**
+ * @file app.cpp
+ * @brief
+ *
+ * Code this file just like Arduino way
+ *
+ * 就像使用Arduino框架一样在这个文件中写代码就可以了
+ *
+ */
+
 #include "app.h"
-#include "../src/globalmanager/globalmanager.h"
 
 void App::setup()
 {
@@ -94,6 +103,10 @@ void App::setup()
 
 void App::loop()
 {
+    // put your code in this function
+    // it will run repeatedly, attention attached
+
+    // 把你的代码放在这个函数里，代码会重复的运行，请阅读注意事项
 }
 
 /**

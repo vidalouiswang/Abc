@@ -1,6 +1,5 @@
 #pragma once
-#include <Arduino.h>
-#include <config.h>
+#include "../src/globalmanager/globalmanager.h"
 
 /**
  * @brief name of app
@@ -149,7 +148,27 @@ public:
         : pinLED(pinLED), delayTimeout(delayTimeout) {}
 
     inline ~App(){};
+    
+    /**
+     * @brief put your code in this function to run it once
+     * 
+     * 把你的代码放在这个函数里，代码会被运行一次
+     * 
+     */
     void setup();
+
+    /**
+     * @brief put your code in this function
+     * it will run repeatedly, attention attached
+     * 
+     * 把你的代码放在这个函数里，代码会重复的运行，请阅读注意事项
+     * 
+     * @attention loop function will NOT run when OTA update
+     * process running
+     * 
+     * 在OTA升级期间，loop函数不会被运行
+     * 
+     */
     void loop();
 };
 

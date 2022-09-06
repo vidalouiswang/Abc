@@ -1,5 +1,14 @@
+/**
+ * @file app.cpp
+ * @brief
+ *
+ * Code this file just like Arduino way
+ *
+ * 就像使用Arduino框架一样在这个文件中写代码就可以了
+ *
+ */
+
 #include "app.h"
-#include "../src/globalmanager/globalmanager.h"
 
 void App::setup()
 {
