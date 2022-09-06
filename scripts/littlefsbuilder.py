@@ -22,5 +22,6 @@ def OTA(source, target, enc):
     env.Execute("node "+ projectRootPath +"scripts/autoOTA.js " + projectRootPath)
 
 env.AddPostAction("buildprog", copyFirmware)
-env.AddPostAction("buildprog", OTA)
+
+#env.AddPostAction("buildprog", OTA)
 env.AddPostAction("upload", copyFirmware)
