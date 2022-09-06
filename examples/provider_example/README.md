@@ -1,3 +1,3 @@
-This is an empty example, only show code structure.
+This is example shows you how to create unique provider for single app.
 
-这是个空工程，仅用于展示代码结构。
+这个例子展示如何给 app 添加 单独的 provider。
