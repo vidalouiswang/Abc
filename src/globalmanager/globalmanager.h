@@ -535,9 +535,9 @@ private:
 
     /**
      * @brief indicate provider buffer shrank or not
-     * 
+     *
      * 指示 provider buffer 是否被缩减过
-     * 
+     *
      */
     bool isProviderBufferShrank = false;
 
@@ -936,6 +936,35 @@ public:
     {
         Provider *p = new Provider(this->providers->size(), cb, name, settings, lengthOfArguments);
         p->customID = customID;
+        this->providers->push_back(p);
+    }
+
+    /**
+     * @brief add custom provider
+     * 添加自定义provider
+     * 
+     * @param builtIn indicate current provier is built-in or not
+     * 指示当前provider是否是内建的
+     * 
+     * @param cb callback 回调函数
+     * @param name name for human read 名字，给人看的
+     * @param settings provider settings, provider设置
+     * refer to provider.h enum
+     * 枚举在 provider.h 里
+     *
+     * @param lengthOfArguments indicate how many arguments of current provider
+     * 当前添加的provider 需要几个参数
+     * 
+     * 
+     */
+    inline void createProvider(bool builtIn,
+                               ProviderCallback cb,
+                               String name,
+                               uint8_t settings = 0,
+                               uint8_t lengthOfArguments = 0)
+    {
+        Provider *p = new Provider(this->providers->size(), cb, name, settings, lengthOfArguments);
+        p->isBuiltIn = builtIn;
         this->providers->push_back(p);
     }
 
