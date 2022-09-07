@@ -815,7 +815,7 @@ void GlobalManager::internalRemoteMsgHandler(
                     // sync time
                     this->syncTime(output->at(1)->getUint64());
 
-                    //record power on time
+                    // record power on time
                     if (!this->systemPowerOnTime)
                     {
                         this->systemPowerOnTime = output->at(1)->getUint64();
@@ -1933,7 +1933,8 @@ void GlobalManager::getFindDeviceBuffer(
     const char *userID,
     Elements *response,
     bool isAdmin)
-{ /*
+{
+    /*
         C code:
         for find device
         arr[0] 0xfa
@@ -1966,29 +1967,18 @@ void GlobalManager::getFindDeviceBuffer(
     {
         extraInfo |= (uint8_t)(32);
     }
-    auto cmd = new Element(CMD_FIND_DEVICE_RESPONSE);
-    auto admin = new Element(userID);
-    auto cpu = new Element((uint16_t)(ESP.getCpuFreqMHz()));
-    auto extra = new Element(extraInfo);
-    auto hardwareTime = new Element(globalTime->getTime());
-    auto eHeap = new Element((uint32_t)(ESP.getFreeHeap()));
-    auto eNickname = new Element(this->nickname.getString().c_str());
-    auto eID = new Element(this->UniversalID->getHex().c_str());
-    auto eStructureVersion = new Element(SYSTEM_VERSION);
-    auto appVersion = new Element(APP_VERSION);
-    auto eBufferProviders = new Element(this->bufferProviders, this->bufferProvidersLength);
 
-    response->push_back(cmd);               // response to find device 0xaf
-    response->push_back(admin);             // web client id
-    response->push_back(cpu);               // cpu freq
-    response->push_back(extra);             // extra info
-    response->push_back(hardwareTime);      // current timestamp
-    response->push_back(eHeap);             // free heap
-    response->push_back(eNickname);         // nickname of this board
-    response->push_back(eID);               // id of this board
-    response->push_back(eStructureVersion); // current structure version
-    response->push_back(appVersion);        // app version
-    response->push_back(eBufferProviders);  // providers buffer
+    response->push_back(new Element(CMD_FIND_DEVICE_RESPONSE));                           // response to find device 0xaf
+    response->push_back(new Element(userID));                                             // web client id
+    response->push_back(new Element((uint16_t)(ESP.getCpuFreqMHz())));                    // cpu freq
+    response->push_back(new Element(extraInfo));                                          // extra info
+    response->push_back(new Element(globalTime->getTime()));                              // current timestamp
+    response->push_back(new Element((uint32_t)(ESP.getFreeHeap())));                      // free heap
+    response->push_back(new Element(this->nickname.getString().c_str()));                 // nickname of this board
+    response->push_back(new Element(this->UniversalID->getHex().c_str()));                // id of this board
+    response->push_back(new Element(SYSTEM_VERSION));                                     // current structure version
+    response->push_back(new Element(APP_VERSION));                                        // app version
+    response->push_back(new Element(this->bufferProviders, this->bufferProvidersLength)); // providers buffer
 }
 
 void GlobalManager::resetWifiInfo()
