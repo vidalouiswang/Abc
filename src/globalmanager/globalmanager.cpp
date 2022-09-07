@@ -1385,6 +1385,7 @@ void GlobalManager::initializeBasicInformation()
 #ifdef BUILT_IN_FUNCTION_PROVIDER
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             esp_reset_reason_t reason = esp_reset_reason();
@@ -1431,6 +1432,7 @@ void GlobalManager::initializeBasicInformation()
         (PROVIDER_ADMIN | PROVIDER_COMMON));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             if (!arguments->size())
@@ -1447,6 +1449,7 @@ void GlobalManager::initializeBasicInformation()
         PI_MODIFY_TOKEN, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_ENCRYPT), 1);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             if (arguments->size() < 2)
@@ -1491,6 +1494,7 @@ void GlobalManager::initializeBasicInformation()
         PI_ADD_MODIFY_DELETE_USER, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_ENCRYPT), 2);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             if (arguments->size() < 2)
@@ -1541,6 +1545,7 @@ void GlobalManager::initializeBasicInformation()
         (PROVIDER_ADMIN | PROVIDER_ENCRYPT | PROVIDER_QUESTION), 2);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             if (arguments->size() < 1)
@@ -1560,6 +1565,7 @@ void GlobalManager::initializeBasicInformation()
         PI_REMOVE_VALUE_IN_MAIN_DATABASE, (PROVIDER_ADMIN | PROVIDER_ENCRYPT | PROVIDER_QUESTION), 1);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             global->resetWifiInfo();
@@ -1568,6 +1574,7 @@ void GlobalManager::initializeBasicInformation()
         PI_REMOVE_WIFI_INFORMATION, (PROVIDER_ADMIN | PROVIDER_QUESTION));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             if (!esp_ota_check_rollback_is_possible())
@@ -1584,6 +1591,7 @@ void GlobalManager::initializeBasicInformation()
         PI_ROLLBACK, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_QUESTION));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             String rtnValue = "";
@@ -1611,6 +1619,7 @@ void GlobalManager::initializeBasicInformation()
         PI_FIRMWARE_STATUS, (PROVIDER_ADMIN | PROVIDER_COMMON));
 
     this->createProvider(
+        true,
         [this](ProviderArguments arguments) -> Element *
         {
             Element lastOTATime = db("lastOTATime");
@@ -1622,6 +1631,7 @@ void GlobalManager::initializeBasicInformation()
         PI_LAST_OTA_TIME, (PROVIDER_ADMIN | PROVIDER_COMMON));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             uint8_t mac[8] = {0};
@@ -1638,6 +1648,7 @@ void GlobalManager::initializeBasicInformation()
         PI_MAC_ADDRESS, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_ENCRYPT));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             char rtnValue[64] = {0};
@@ -1689,6 +1700,7 @@ void GlobalManager::initializeBasicInformation()
         PI_REMOVE_ALL_INFORMATION, (PROVIDER_ADMIN | PROVIDER_QUESTION));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             Element *value = new Element(PI_INVALID_SSID_PROVIDED);
@@ -1710,6 +1722,7 @@ void GlobalManager::initializeBasicInformation()
         PI_MODIFY_SSID, (PROVIDER_ADMIN | PROVIDER_ENCRYPT | PROVIDER_QUESTION), 1);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             Element *value = new Element(PI_INVALID_WIFI_PASSWORD);
@@ -1737,6 +1750,7 @@ void GlobalManager::initializeBasicInformation()
         PI_MODIFY_WIFI_PASSWORD, (PROVIDER_ADMIN | PROVIDER_ENCRYPT | PROVIDER_QUESTION), 1);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         {
             uint32_t delay = 3;
@@ -1757,16 +1771,19 @@ void GlobalManager::initializeBasicInformation()
         PI_REBOOT, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_QUESTION), 1);
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         { return new Element(globalTime->getTime()); },
         PI_HARDWARE_TIMESTAMP, (PROVIDER_ADMIN | PROVIDER_COMMON));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         { return new Element(String(ESP.getFreeHeap()) + PI_PREFIX_BYTE); },
         PI_FREE_HEAP, (PROVIDER_ADMIN | PROVIDER_COMMON));
 
     this->createProvider(
+        true,
         [](ProviderArguments arguments) -> Element *
         { return new Element(String(MyFS::getFreeSpace()) + PI_PREFIX_BYTE); },
         PI_FREE_SPACE, (PROVIDER_ADMIN | PROVIDER_COMMON));
