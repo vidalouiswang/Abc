@@ -89,6 +89,8 @@
 
 #define PI_FREE_SPACE "剩余存储空间"
 
+#define PI_FIRMWARE_ERROR_TIME "固件异常: %llu"
+
 
 #else
 
@@ -164,6 +166,8 @@
 #define PI_FREE_HEAP "Free heap"
 
 #define PI_FREE_SPACE "Free space"
+
+#define PI_FIRMWARE_ERROR_TIME "Firmware error: %llu"
 
 
 #endif

@@ -1602,7 +1602,12 @@ void GlobalManager::initializeBasicInformation()
             {
                 uint64_t t = pendingOTAInvalid.getNumber();
                 if (t)
-                    return new Element(t);
+                {
+                    // return error time
+                    char buf[64] = {0};
+                    sprintf(buf, PI_FIRMWARE_ERROR_TIME, t);
+                    return new Element(buf);
+                }
 
                 rtnValue = pendingOTA.available()
                                ? (pendingOTA.getUint8()
