@@ -126,19 +126,20 @@ sudo pm2 restart iot.js
 
 Don't forget add rule to let new port could pass through in firewall.
 
-### Local
+### Step 3: Local Use
 
 1. Use Platform IO open root folder.
 2. Locate to /src/app/ . 
-3. Edit app.h and app.cpp.
-4. Compile and upload firmware(better erase flash first).
-5. Use PC or phone connect to esp32 access point, attention, some phone you need to select "keep connection without internet".
+3. Edit app.h and app.cpp as Arduino way.
+4. Compile and upload(better erase flash first).
+5. Use PC or phone connect to esp32 access point.
 6. Open browser，locate to http://192.168.8.1.
-7. Set arguments and click reboot.
-8. Locate to http://your_domain_or_ip_of_your_server:port/, 80 or 443 could be omit.
-9. Now you could see your device online, click "@" could access built-in providers.
+7. Set arguments by tips and click reboot.
+8. Locate to http://your_domain_or_ip_of_your_server:port/.
+9. Login in with user name and password set in step 7.
+10. Now you could see your device online, click "@" could access built-in providers.
 
-More information and examples refer to /examples/.
+More information and examples refer to /examples/ , full comments in it.
 
 ### Check header files for basic information, configs locate to /lib/config/config.h
 
@@ -155,11 +156,13 @@ More information and examples refer to /examples/.
     * Header file:
 
         * Almost all header files
+        * /examples/*.h
 
     * Source File:
 
         * /lib/arraybuffer/arraybuffer.cpp
         * /src/main/main.cpp
+        * /examples/*.cpp
 
 * Server:
 
