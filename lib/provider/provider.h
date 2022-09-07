@@ -87,6 +87,15 @@ public:
     bool encrypt = false;
 
     /**
+     * @brief indicate that current provider 
+     * is built-in or not
+     * 
+     * 指示当前provider是内建的provider吗
+     * 
+     */
+    bool isBuiltIn = false;
+
+    /**
      * @brief default empty arguments constructor
      * 默认无参构造
      */

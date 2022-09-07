@@ -81,7 +81,7 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
 #endif
 }
 
-void GlobalManager::buildProvidersBuffer()
+void GlobalManager::buildProvidersBuffer(bool buildAll)
 {
     ESP_LOGD(SYSTEM_DEBUG_HEADER, "Building provider bufffer");
     std::vector<Element *> providerBufferContainer;
@@ -94,6 +94,13 @@ void GlobalManager::buildProvidersBuffer()
         it != this->providers->end();
         ++it)
     {
+        if (!buildAll && (*it)->isBuiltIn)
+        {
+            // if system require build only normal
+            // providers, then skip built-in providers
+            continue;
+        }
+
         providerBuffer = (*it)->getBuffer(&providerOutLen);
         if (providerBuffer && providerBuffer)
         {
@@ -111,6 +118,8 @@ void GlobalManager::buildProvidersBuffer()
         {
             delete this->bufferProviders;
         }
+
+        this->isProviderBufferShrank = buildAll ? false : true;
 
         this->bufferProviders = ArrayBuffer::createArrayBuffer(&providerBufferContainer, &(this->bufferProvidersLength));
 
@@ -798,6 +807,17 @@ void GlobalManager::internalRemoteMsgHandler(
     switch (command)
     {
     case CMD_HELLO:
+#ifdef AUTO_CLEAN_BUILT_IN_PROVIDER_BUFFER
+        if (!this->isProviderBufferShrank)
+        {
+            if (globalTime->getTime() - this->lastTimeAdminOnline > TIMEOUT_CLEAN_BUILT_IN_PROVIDER_BUFFER)
+            {
+                ESP_LOGD(SYSTEM_DEBUG_HEADER, "shrink provider buffer");
+                this->buildProvidersBuffer(false);
+            }
+        }
+
+#endif
         this->sendHello(false);
         break;
     case CMD_WORLD:
@@ -1965,6 +1985,15 @@ void GlobalManager::getFindDeviceBuffer(
     }
     if (isAdmin)
     {
+        if (this->isProviderBufferShrank)
+        {
+            this->buildProvidersBuffer();
+        }
+
+        // record admin online time
+        this->lastTimeAdminOnline = globalTime->getTime();
+
+        // set mask for js use
         extraInfo |= (uint8_t)(32);
     }
 

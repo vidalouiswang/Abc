@@ -268,6 +268,16 @@
 // 多长时间之后认为当前固件是有效的，从连接到服务器开始计算
 #define CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT 1000 * 600 // ten minutes to confirm ota firmware is valid
 
+// will shrink providers buffer if defined
+// this action could save RAM for other functions
+// 如果定义了此宏，则会自动缩减provider 的 buffer
+// 用以提供更多的RAM供其他功能使用
+#define AUTO_CLEAN_BUILT_IN_PROVIDER_BUFFER
+
+// timeout for shrink provider buffer
+// 缩减 provider buffer 的超时时间
+#define TIMEOUT_CLEAN_BUILT_IN_PROVIDER_BUFFER 600 * 1000
+
 // debug header
 // 调试头
 #define SYSTEM_DEBUG_HEADER "ABC"
