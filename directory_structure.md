@@ -88,8 +88,8 @@ root - |
                     | - index.js: main js file of index.html
                     | - index.min.js: minified version of index.js
                     | - iot.js: server main file(node.js)
-                    | - start.command: for MacOS using, start local server for debug
-                    | - tools.command: for MacOS using, tools.js warpper
+                    | - start.command: for macOS using, start local server for debug
+                    | - tools.command: for macOS using, tools.js warpper
                     | - start.bat: for Windows using, start local server for debug
                     | - tools.bat: for Windows using, tools.js warpper
                     | - tools.js: watch file changed, and refresh /server/pro/index.html (node.js)
@@ -106,11 +106,14 @@ root - |
                     | - test.cpp: unit tests
        | - tools:
                     | - mklittlefs: for MacOS using, related to littleFS
-       | - build.command: for MacOS using, build.js warpper
+       | - build.command: for macOS using, build.js warpper
        | - build.bat: for Windows using, build.js warpper
        | - build.js: build firmware, copy app file from /app/ to /src/app/ (node.js)
        | - directory_structure.md: this file
        | - platformio.ini: Platform IO config file
+       | - OTASettings.bat: For Windows user, to start automatic OTA update setting program
+       | - OTASettings.command: For macOS user, to start automatic OTA update setting program
+       | - OTASettings.js: set automatic OTA update configuration
        
 
 中文版:
@@ -221,8 +224,11 @@ root - |
                     | - test.cpp: 单元测试
        | - tools:
                     | - mklittlefs: 给MacOS用的, 用于支持littleFS
-       | - build.command: 给MacOS用的, 启动build.js
+       | - build.command: 给macOS用的, 启动build.js
        | - build.bat: 给Windows用的, 启动build.js
        | - build.js: 编译固件, 拷贝文件从 /app/ 到 /src/app/ (node.js)
        | - directory_structure.md: 此文件
        | - platformio.ini: Platform IO 配置文件
+       | - OTASettings.bat: 给Windows用的，快速启动自动OTA的设置程序
+       | - OTASettings.command: 给macOS用的，快速启动自动OTA的设置程序
+       | - OTASettings.js: 用于设置自动OTA的程序
