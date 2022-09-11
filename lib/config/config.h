@@ -272,7 +272,9 @@
 // this action could save RAM for other functions
 // 如果定义了此宏，则会自动缩减provider 的 buffer
 // 用以提供更多的RAM供其他功能使用
-#define AUTO_CLEAN_BUILT_IN_PROVIDER_BUFFER
+// still developing
+// 正在开发
+//#define AUTO_CLEAN_BUILT_IN_PROVIDER_BUFFER
 
 // timeout for shrink provider buffer
 // 缩减 provider buffer 的超时时间
