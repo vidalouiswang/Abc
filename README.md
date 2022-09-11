@@ -6,6 +6,8 @@
 
 ## At present, the ESP32 firmware built with this library has been running stably for several months and can be used officially.
 
+### Note: Clone the code from main branch.
+
 ## Brief
 
 This library work with Espressif offical framework esp32-arduino 2.0.3.
