@@ -84,6 +84,10 @@ function pushFirmware() {
         console.log("Connected");
     });
     client.on("message", function (msg) {
-        
+
+    });
+    client.on("error", function (err) {
+        console.log("Error OTA update :", err.toString());
+        process.exit(1);
     });
 };

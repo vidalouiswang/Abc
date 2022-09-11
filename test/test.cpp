@@ -330,6 +330,32 @@ void test_createArrayBuffer_and_decodeArrayBuffer()
         });
 }
 
+void test_element_type()
+{
+    Element a = 10;
+    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
+    TEST_ASSERT_TRUE(a.getType() == UINT8);
+
+    a = (uint8_t)10;
+    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
+    TEST_ASSERT_TRUE(a.getType() == UINT8);
+
+    a = (uint16_t)65535;
+    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
+    TEST_ASSERT_TRUE(a.getType() == UINT16);
+
+    a = (uint32_t)65536;
+    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
+    TEST_ASSERT_TRUE(a.getType() == UINT32);
+
+    a = (uint64_t)0xffffffffffffULL;
+    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
+    TEST_ASSERT_TRUE(a.getType() == UINT64);
+
+    a = "Hello world";
+    TEST_ASSERT_TRUE(a.getType(true) != NUMBER);
+}
+
 void test_mydb()
 {
     MyFS::myfsInit();
@@ -360,6 +386,7 @@ void setup()
     RUN_TEST(test_element_math_operators);
     RUN_TEST(test_element_copyFrom);
     RUN_TEST(test_element_getHex);
+    RUN_TEST(test_element_type);
     RUN_TEST(test_element_convertHexStringIntoUint8Array);
     RUN_TEST(test_createArrayBuffer_and_decodeArrayBuffer);
 

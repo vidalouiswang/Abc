@@ -891,11 +891,7 @@ uint64_t Element::getBufferLength(bool includeHeader) const
 
 ElementType Element::getType(bool isNumber) const
 {
-
-    return isNumber ? ((this->type == UINT8 ||
-                        this->type == UINT16 ||
-                        this->type == UINT32 ||
-                        this->type == UINT64)
+    return isNumber ? ((this->type < 4)
                            ? NUMBER
                            : this->type)
                     : (this->type);

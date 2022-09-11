@@ -43,9 +43,9 @@
  * 但是因为无符号和有符号在底层存储只是符号位的区别
  * 所以你可以自己改造成可以输出有符号类型的
  */
-typedef enum
+typedef enum : uint8_t
 {
-    UINT8,
+    UINT8 = 0U,
     UINT16,
     UINT32,
     UINT64,
