@@ -2,7 +2,9 @@
 
 [中文](https://github.com/vidalouiswang/Abc/blob/main/README_CN.md)
 
-### A basic esp32 library for beginners(Beta)
+### A basic ESP32 library for beginners
+
+## At present, the ESP32 firmware built with this library has been running stably for several months and can be used officially.
 
 ## Brief
 
