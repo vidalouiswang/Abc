@@ -776,6 +776,9 @@
 			customOTA.push(json);
 		}
 
+		if (!client.id)
+			client.id = arr[2];
+
 		//send request to esp32
 		//发送升级请求到esp32
 		print("send websocket ota request to esp32");
@@ -848,7 +851,7 @@
 					0xfb,
 					otaTargetObj.target,
 					otaTargetObj.admin,
-					"OTA升级完成"
+					100
 				]);
 			otaTargetObj.data = null;
 		}

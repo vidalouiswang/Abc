@@ -46,10 +46,10 @@ if (fs.existsSync(rootPath + "src/app/app.h")) {
     appVersion = "10";
 }
 
-if (!fs.existsSync(rootPath + "fiwmware/")) {
-    fs.mkdirSync(rootPath + "fiwmware/");
+if (!fs.existsSync(rootPath + "firmware/")) {
+    fs.mkdirSync(rootPath + "firmware/");
 }
 
-fs.copyFileSync(firmwarePath + 'firmware.bin', rootPath + "fiwmware/" + appName + "_" + appVersion + "_" + new Date().getFormat("hh.MM.ss") + ".bin");
+fs.copyFileSync(firmwarePath + 'firmware.bin', rootPath + "firmware/" + appName + "_" + appVersion + "_" + new Date().getFormat("hh.MM.ss") + ".bin");
 
 console.log("firmware copied\n");

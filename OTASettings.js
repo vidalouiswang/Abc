@@ -11,19 +11,19 @@
         path: "",
         table: [
             //{
-            //    nickname1: nickname1,
+            //    appName: appName1,
             //    id: id1,
             //    blockSize: 8 * 1024,
             //    enable: true
             //},
             //{
-            //    nickname2: nickname2,
+            //    appName: appName2,
             //    id: id2,
             //    blockSize: 1 * 1024,
             //    enable: true
             //},
             //{
-            //    nickname3: nickname3,
+            //    appName: appName3,
             //    id: id3,
             //    blockSize: 16 * 1024,
             //    enable: true
@@ -34,9 +34,9 @@
 
     let language = {
         en: {
-            op: "1. Add OTA update device\n2. Remove OTA update device\n3. Enable device OTA update\n4. Disable device OTA update\n5. Add/update server settings\n6. Exit\nInput:",
-            add: "Input target device info, format:\nID(required) ^ nickname(optional) ^ OTA update block size(bytes, optional, default is 8192)\nInput use \"^\" to separate, separator allow to have space around with\n:",
-            info: "\nInput information\nID: %id\nnickname: %nickname\nOTA update block size: %ota\nData added\n",
+            op: "1. Add OTA update device\n2. Remove OTA update device\n3. Enable device OTA update\n4. Disable device OTA update\n5. Add/update server settings\n6. Add/update administrator\n7. Exit\nInput:",
+            add: "Input target device info, format:\nID(required) ^ app name(required) ^ OTA update block size(bytes, optional, default is 8192)\nInput use \"^\" to separate, separator allow to have space around with\n:",
+            info: "\nInput information\nID: %id\napp name: %appName\nOTA update block size: %ota\nData added\n",
             error: "Illegal input, please input again\n",
             whichOne: "Which one?\n:",
             empty: "No device\n",
@@ -44,12 +44,14 @@
             success: "Success",
             allDeviceEnabled: "All deivce enabled\n",
             allDeviceDisabled: "All device disabled\n",
-            setServerInfo: "Input server connection information\nformat:\n(domain or IP):port/path(path is optional)\n"
+            setServerInfo: "Input server connection information\nformat:\n(domain or IP):port/path(path is optional)\n",
+            setUserName: "User name:\n",
+            setPassword: "Password:\n"
         },
         cn: {
-            op: "1. 添加自动OTA升级设备\n2. 移除自动OTA升级设备\n3. 打开设备OTA升级\n4. 关闭设备OTA升级\n5. 添加/修改服务器设置\n6. 退出\n请输入:",
-            add: "请输入目标设备信息, 格式为:\nID(必填) ^ 昵称(可选) ^ OTA升级块大小(以字节计, 可选, 默认8192字节)\n数据以\"^\"分隔, 分隔符周围可以包含空格\n:",
-            info: "\n输入的信息为\nID: %id\n昵称: %nickname\nOTA升级块大小: %ota\n数据已添加\n",
+            op: "1. 添加自动OTA升级设备\n2. 移除自动OTA升级设备\n3. 打开设备OTA升级\n4. 关闭设备OTA升级\n5. 添加/修改服务器设置\n6. 添加/修改管理员\n7. 退出\n请输入:",
+            add: "请输入目标设备信息, 格式为:\nID(必填) ^ 昵称(必填) ^ OTA升级块大小(以字节计, 可选, 默认8192字节)\n数据以\"^\"分隔, 分隔符周围可以包含空格\n:",
+            info: "\n输入的信息为\nID: %id\n应用名称: %appName\nOTA升级块大小: %ota\n数据已添加\n",
             error: "输入有误, 请重新输入\n",
             whichOne: "哪个设备?\n:",
             empty: "无自动OTA升级设备\n",
@@ -57,7 +59,9 @@
             success: "成功",
             allDeviceEnabled: "没有需要打开OTA升级的设备\n",
             allDeviceDisabled: "没有需要关闭OTA升级的设备\n",
-            setServerInfo: "请输入服务器信息\n格式为:\n(域名或IP):端口/路径(路径可选)\n"
+            setServerInfo: "请输入服务器信息\n格式为:\n(域名或IP):端口/路径(路径可选)\n",
+            setUserName: "设置用户名:\n",
+            setPassword: "设置密码:\n"
         }
     };
 
@@ -98,7 +102,7 @@
                 return;
             }
 
-            info = /\s*?(?<id>[a-fA-F0-9]{64})\s*?(\^\s*?(?<nickname>[\S]+)?\s*?(\^\s*?(?<ota>[0-9]+)?)?)?/.exec(info);
+            info = /\s*?(?<id>[a-fA-F0-9]{64})\s*?(\^\s*?(?<appName>[\S]+)?\s*?(\^\s*?(?<ota>[0-9]+)?)?)?/.exec(info);
             if (!info || !info.groups) {
                 console.log(language[lan].error);
                 query();
@@ -106,7 +110,7 @@
             }
             let template = language[lan].info;
             template = template.replace("%id", info.groups.id);
-            template = template.replace("%nickname", info.groups.nickname || "");
+            template = template.replace("%appName", info.groups.appName);
             template = template.replace("%ota", info.groups.ota || "8192");
             console.log(template);
 
@@ -114,7 +118,7 @@
 
             let json = {
                 id: info.groups.id,
-                nickname: info.groups.nickname || info.groups.id,
+                appName: info.groups.appName || info.groups.id,
                 blockSize: info.groups.ota ? parseInt(info.groups.ota) : 8192,
                 enable: true
             };
@@ -141,7 +145,7 @@
         console.log();
 
         for (let i = 0; i < config.table.length; ++i) {
-            console.log("" + (i + 1) + ": " + config.table[i].nickname || config.table[i].id)
+            console.log("" + (i + 1) + ": " + config.table[i].appName)
         }
 
         rl.question(language[lan].whichOne, function (index) {
@@ -184,7 +188,7 @@
         let k = 0;
         for (let i of arr) {
             i.index = k;
-            console.log("" + (i.index + 1) + ": " + i.nickname || i.id);
+            console.log("" + (i.index + 1) + ": " + i.appName);
         }
         rl.question(language[lan].whichOne, function (index) {
             if (!index.length) {
@@ -198,6 +202,7 @@
             if (targetIndex >= 0) {
                 config.table[targetIndex].enable = enable;
             }
+            updateConfig();
             console.log(language[lan].success);
             query();
         });
@@ -233,6 +238,18 @@
         });
     };
 
+    let updateAdmin = function () {
+        rl.question(language[lan].setUserName, function (userName) {
+            config.adminUserName = userName;
+            rl.question(language[lan].setPassword, function (password) {
+                config.adminPassword = password;
+                updateConfig();
+                console.log(language[lan].success);
+                query();
+            });
+        });
+    };
+
     let select = function (content) {
         if (!content.length) {
             query();
@@ -256,6 +273,9 @@
                 updateServerSettings();
                 break;
             case 6:
+                updateAdmin();
+                break;
+            case 7:
                 process.exit(0);
 
             default:
