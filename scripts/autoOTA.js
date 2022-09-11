@@ -4,8 +4,8 @@ let ws = require("ws");
 
 let config = null;
 
-if (fs.existsSync("./config.json")) {
-    JSON.parse(fs.readFileSync("./config.json").toString());
+if (fs.existsSync("./autoOTAConfig.json")) {
+    JSON.parse(fs.readFileSync("./autoOTAConfig.json").toString());
 } else {
     config = {
         adminUserName: "",
@@ -15,21 +15,27 @@ if (fs.existsSync("./config.json")) {
         path: "",
         table: [
             //{
-            //    nickname1: id1,
-            //    blockSize: 8 * 1024
+            //    nickname1: nickname1,
+            //    id: id1,
+            //    blockSize: 8 * 1024,
+            //    enable: true
             //},
             //{
-            //    nickname2: id2,
-            //    blockSize: 1 * 1024
+            //    nickname2: nickname2,
+            //    id: id2,
+            //    blockSize: 1 * 1024,
+            //    enable: true
             //},
             //{
-            //    nickname3: id3,
-            //    blockSize: 16 * 1024
+            //    nickname3: nickname3,
+            //    id: id3,
+            //    blockSize: 16 * 1024,
+            //    enable: true
             //},
             //...
         ]
     };
-    fs.writeFileSync("./config.json", JSON.stringify(config));
+    fs.writeFileSync("./autoOTAConfig.json", JSON.stringify(config));
 }
 
 if (
@@ -77,6 +83,8 @@ if (!id || id.length != 64) {
     return;
 }
 
+console.log("auto ota target: ", target);
+
 
 function pushFirmware() {
     let client = new ws.WebSocket("ws://" + config.domain + ":" + config.port + config.path);
@@ -91,3 +99,5 @@ function pushFirmware() {
         process.exit(1);
     });
 };
+
+pushFirmware();
