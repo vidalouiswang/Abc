@@ -4,7 +4,7 @@
 
 ### A basic ESP32 library for beginners
 
-## At present, the ESP32 firmware built with this library has been running stably for several months and can be used officially.
+### At present, the ESP32 firmware built with this library has been running stably for several months and can be used officially.
 
 ### Note: Clone the code from main branch.
 
