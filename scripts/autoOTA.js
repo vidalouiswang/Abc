@@ -61,18 +61,14 @@ for (let i of firmwares) {
         meta: /(?<appName>.+)_(?<version>.+)_(?<hour>\d{2})\.(?<minute>\d{2})\.(?<second>\d{2})/.exec(i)
     };
     if (json.meta) {
-        let date = new Date("00:00:00 01/01/2200");
-        date.setHours(parseInt(json.meta.groups.hour));
-        date.setMinutes(parseInt(json.meta.groups.minute));
-        date.setSeconds(parseInt(json.meta.groups.second));
-        json.time = date.getTime();
+        json.time = parseInt(fs.statSync(rootPath + "firmware/" + i).mtimeMs)
         json.appName = json.meta.groups.appName;
         arr.push(json);
     }
 }
 
 arr.sort((a, b) => {
-    return a.time - b.time;
+    return b.time - a.time;
 });
 
 let target = null;
