@@ -64,7 +64,7 @@ for (let i of firmwares) {
         let date = new Date("00:00:00 01/01/2200");
         date.setHours(parseInt(json.meta.groups.hour));
         date.setMinutes(parseInt(json.meta.groups.minute));
-        date.setHours(parseInt(json.meta.groups.second));
+        date.setSeconds(parseInt(json.meta.groups.second));
         json.time = date.getTime();
         json.appName = json.meta.groups.appName;
         arr.push(json);
