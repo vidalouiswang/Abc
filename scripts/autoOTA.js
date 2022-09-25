@@ -62,9 +62,9 @@ for (let i of firmwares) {
     };
     if (json.meta) {
         let date = new Date("00:00:00 01/01/2200");
-        date.setHours(json.meta.groups.hour);
-        date.setMinutes(json.meta.groups.hour);
-        date.setHours(json.meta.groups.hour);
+        date.setHours(parseInt(json.meta.groups.hour));
+        date.setMinutes(parseInt(json.meta.groups.minute));
+        date.setHours(parseInt(json.meta.groups.second));
         json.time = date.getTime();
         json.appName = json.meta.groups.appName;
         arr.push(json);
@@ -72,7 +72,7 @@ for (let i of firmwares) {
 }
 
 arr.sort((a, b) => {
-    return b.time - a.time;
+    return a.time - b.time;
 });
 
 let target = null;
@@ -97,6 +97,7 @@ if (!id || id.length != 64) {
 
 target.fileName = arr[0].fileName;
 
+console.log("Pending OTA firmware: ", target.fileName);
 
 function pushFirmware() {
     if (!config.path.startsWith("/"))

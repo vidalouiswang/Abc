@@ -165,11 +165,9 @@
 
 
             div.onclick = e => {
-                if (e.path && e.path.length) {
-                    let tagName = e.path[0].tagName || e.path[0].nodeName;
-                    if (tagName.toLowerCase() == "div") {
-                        this.moreContainer.className = "deviceMore";
-                    }
+                let tagName = e.target.tagName;
+                if (tagName.toLowerCase() == "div") {
+                    this.moreContainer.className = "deviceMore";
                 }
             };
 
