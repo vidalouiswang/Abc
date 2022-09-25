@@ -13,18 +13,13 @@ void mainLoop(void *t)
 void GlobalManager::beginAll(WebSocketCallback apCB,
                              WebSocketCallback wifiCB)
 {
-    LOG_STATUS(POWER_ON);
 
-    LOG_STATUS(SETTING_CPU);
     // hardware related settings must be set at first
     // set cpu frequency
     setCpuFrequencyMhz(DEFAULT_CPU_FREQ);
-    LOG_STATUS(CPU_SET);
 
     // enable sha hardware acceleration of esp32
-    LOG_STATUS(ENABLING_SHA_HARDWARE_ACCELERATION);
     mycrypto::SHA::initialize();
-    LOG_STATUS(SHA_HARDWARE_ACCELERATION_ENABLED);
 
     // enable aes hardware acceleration of esp32
     mycrypto::AES::initialize();
