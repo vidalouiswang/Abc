@@ -281,8 +281,7 @@
                     reader.readAsArrayBuffer(file);
                     reader.onload = e => {
                         this.firmware = reader.result;
-                        this.showMsg("固件已加载, 大小: " + this.firmware.byteLength + "字节</br>"
-                            + "SHA256: " + getHash(new Uint8Array(this.firmware)), 100000);
+                        this.showMsg("固件已加载, 大小: " + this.firmware.byteLength + "字节", 100000);
                     };
                 };
                 btnInnerOTALoad.click();
