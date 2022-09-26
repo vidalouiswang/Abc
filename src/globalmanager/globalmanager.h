@@ -54,6 +54,8 @@ typedef struct
  */
 void mainLoop(void *t);
 
+void appLoopWarper(void *t);
+
 typedef std::function<void(myWebSocket::WebSocketClient *client,
                            myWebSocket::WebSocketEvents event,
                            uint8_t *data,
@@ -299,15 +301,6 @@ private:
     std::function<void(void)> appSetup = nullptr;
 
     /**
-     * @brief user app lopp
-     * 用户应用主循环
-     *
-     * @attention app lopp will not run when ota updating
-     * 当ota更新时用户主循环函数不会运行
-     */
-    std::function<void(void)> appLoop = nullptr;
-
-    /**
      * @brief domain for websocket client to remote server
      * 用于连接远程websocket服务器的域名
      */
@@ -535,7 +528,26 @@ private:
     template <class T>
     bool _sendBundle(String frinedID, T command, uint16_t providerID, Elements *request = nullptr);
 
+    std::vector<Element*> *_webSerialContainer = nullptr;
+
 public:
+    /**
+     * @brief user app lopp
+     * 用户应用主循环
+     *
+     * @attention app lopp will not run when ota updating
+     * 当ota更新时用户主循环函数不会运行
+     */
+    std::function<void(void)> appLoop = nullptr;
+
+    /**
+     * @brief store task handle for app loop
+     * 
+     * 保存app loop任务指针
+     * 
+     */
+    TaskHandle_t appLoopHanlde = NULL;
+
     /**
      * @brief DO NOT change contents following 3 lines, tools will generate it automatically
      * 不要修改下面三行内容，这是工具自动生成替换进去的

@@ -36,6 +36,10 @@
 // 认证身份时收到的时间戳多久以前算非法时间戳
 #define ILLEGAL_TIMESPAN_TIMEOUT 600 * 1000
 
+// default app loop stack size
+// 默认 app 循环栈大小
+#define DEFAULT_APP_LOOP_STACK_SIZE 8 * 8192
+
 /**
  * @brief
  * the number that how many used hashes will stored in current esp32

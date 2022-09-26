@@ -10,6 +10,20 @@ void mainLoop(void *t)
     vTaskDelete(NULL);
 }
 
+void appLoopWarper(void *t)
+{
+    for (;;)
+    {
+        global->appLoop();
+    }
+
+    if (global->appLoopHanlde)
+    {
+        vTaskDelete(global->appLoopHanlde);
+        global->appLoopHanlde = NULL;
+    }
+}
+
 void GlobalManager::beginAll(WebSocketCallback apCB,
                              WebSocketCallback wifiCB)
 {
@@ -1029,27 +1043,32 @@ void GlobalManager::webSerial(Element *msg)
 {
     if (this->isWifiConnected && this->websocketClient && this->websocketClient->connected())
     {
-        std::vector<Element *> container;
-        container.push_back(new Element(CMD_LOG));
-        container.push_back(new Element(this->getUniversalID()->getUint8Array(), 32));
+        if (!this->_webSerialContainer)
+        {
+            this->_webSerialContainer = new std::vector<Element *>();
+            this->_webSerialContainer->push_back(new Element(CMD_LOG));
+            this->_webSerialContainer->push_back(new Element(this->getUniversalID()->getUint8Array(), 32));
 
-        String adminID = this->userName.getHex() + this->password.getHex() + "admin";
-        adminID = mycrypto::SHA::sha256(adminID);
+            String adminID = this->userName.getHex() + this->password.getHex() + "admin";
+            adminID = mycrypto::SHA::sha256(adminID);
 
-        container.push_back(new Element(adminID));
-        container.push_back(msg);
+            this->_webSerialContainer->push_back(new Element(adminID));
+        }
+
+        this->_webSerialContainer->push_back(msg);
 
         uint64_t outLen = 0;
-        uint8_t *buffer = ArrayBuffer::createArrayBuffer(&container, &outLen);
+
+        uint8_t *buffer = ArrayBuffer::createArrayBuffer(this->_webSerialContainer, &outLen);
+
         if (outLen && buffer)
         {
             this->websocketClient->send(buffer, outLen);
             delete buffer;
         }
-        for (uint32_t i = 0; i < container.size(); ++i)
-        {
-            delete container.at(i);
-        }
+
+        this->_webSerialContainer->erase(this->_webSerialContainer->begin() + 3);
+        delete msg;
     }
 }
 
@@ -1803,6 +1822,12 @@ void GlobalManager::loop()
     // pause other loop when ota update running
     if (this->ota != nullptr)
     {
+        if (appLoopHanlde)
+        {
+            vTaskSuspend(appLoopHanlde);
+            vTaskDelete(appLoopHanlde);
+            appLoopHanlde = NULL;
+        }
         // run ota loop
         this->ota->client->loop();
         yield();
@@ -1814,10 +1839,27 @@ void GlobalManager::loop()
     else
     {
         // run app loop
-        if (this->appLoop)
+        if (!this->appLoopHanlde)
         {
-            this->appLoop();
-            yield();
+#ifdef APP_LOOP_STACK_SIZE
+            xTaskCreatePinnedToCore(
+                appLoopWarper,
+                "appLoop",
+                APP_LOOP_STACK_SIZE,
+                NULL,
+                1,
+                &(this->appLoopHanlde),
+                1);
+#else
+            xTaskCreatePinnedToCore(
+                appLoopWarper,
+                "appLoop",
+                DEFAULT_APP_LOOP_STACK_SIZE,
+                NULL,
+                1,
+                &(this->appLoopHanlde),
+                1);
+#endif
         }
     }
 

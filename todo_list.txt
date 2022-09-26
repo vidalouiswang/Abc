@@ -1,1 +1,1 @@
-Dynamic provider buffer.
+Add ECDHE for AP mode setup.

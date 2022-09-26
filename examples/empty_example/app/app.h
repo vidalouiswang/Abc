@@ -43,6 +43,14 @@
 #define APP_HAS_LOOP
 
 /**
+ * @brief the stack size of current app loop
+ * 
+ * 当前app循环任务的栈大小
+ * 
+ */
+#define APP_LOOP_STACK_SIZE 8 * 1024
+
+/**
  * @brief indicate app has custom extra callback
  * for local websocket server
  *
