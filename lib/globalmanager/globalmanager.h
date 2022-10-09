@@ -14,15 +14,12 @@
 #include <Arduino.h>
 #include <vector>
 #include <map>
+#include <WiFi.h>
 #include <functional>
-#include <WebServer.h>
 #include <config.h>
-#include <myfs.h>
 #include <mydb.h>
-#include <mynet.h>
-#include <esp32time.h>
 #include <mywebsocket.h>
-#include "../app/app.h"
+#include "../../src/app/app.h"
 #include <ota.h>
 #include <provider.h>
 //#include <DNSServer.h>
@@ -46,15 +43,7 @@ typedef struct
     uint8_t *hash = nullptr;
 } OneTimeAuthorization;
 
-/**
- * @brief main loop
- * 主循环
- *
- * @param t argument 参数
- */
-void mainLoop(void *t);
-
-void appLoopWarper(void *t);
+void otaTask(void *);
 
 typedef std::function<void(myWebSocket::WebSocketClient *client,
                            myWebSocket::WebSocketEvents event,
@@ -289,18 +278,6 @@ private:
     bool isServerOnline = false;
 
     /**
-     * @brief this object handle ota update process
-     * 这个对象用来处理ota升级过程
-     */
-    WebsocketOTA *ota = nullptr;
-
-    /**
-     * @brief user app setup
-     * 用户应用入口
-     */
-    std::function<void(void)> appSetup = nullptr;
-
-    /**
      * @brief domain for websocket client to remote server
      * 用于连接远程websocket服务器的域名
      */
@@ -388,12 +365,6 @@ private:
      * 上次尝试连接到热点的时间
      */
     uint64_t lastConnectWiFiTime = 0;
-
-    /**
-     * @brief the time that ota update process started
-     * ota升级开始的时间
-     */
-    uint64_t otaStartTime = 0;
 
     /**
      * @brief load config for remote websocket connection
@@ -528,25 +499,20 @@ private:
     template <class T>
     bool _sendBundle(String frinedID, T command, uint16_t providerID, Elements *request = nullptr);
 
-    std::vector<Element*> *_webSerialContainer = nullptr;
+    std::vector<Element *> *_webSerialContainer = nullptr;
 
 public:
     /**
-     * @brief user app lopp
-     * 用户应用主循环
-     *
-     * @attention app lopp will not run when ota updating
-     * 当ota更新时用户主循环函数不会运行
+     * @brief this object handle ota update process
+     * 这个对象用来处理ota升级过程
      */
-    std::function<void(void)> appLoop = nullptr;
+    WebsocketOTA *ota = nullptr;
 
     /**
-     * @brief store task handle for app loop
-     * 
-     * 保存app loop任务指针
-     * 
+     * @brief the time that ota update process started
+     * ota升级开始的时间
      */
-    TaskHandle_t appLoopHanlde = NULL;
+    uint64_t otaStartTime = 0;
 
     /**
      * @brief DO NOT change contents following 3 lines, tools will generate it automatically
@@ -823,22 +789,6 @@ public:
     inline myWebSocket::WebSocketClient *getWebsocketClient() { return this->websocketClient; }
 
     /**
-     * @brief set user app setup function
-     * 设置用户应用入口函数
-     *
-     * @param appSetup user setup function 用户应用入口函数
-     */
-    inline void registerAppSetup(std::function<void(void)> appSetup) { this->appSetup = appSetup; }
-
-    /**
-     * @brief set user app main loop
-     * 设置用户应用主循环
-     *
-     * @param appLoop user main loop function 用户应用主循环
-     */
-    inline void registerAppLoop(std::function<void(void)> appLoop) { this->appLoop = appLoop; }
-
-    /**
      * @brief add custom provider
      * 添加自定义provider
      *
@@ -1013,12 +963,7 @@ public:
      *
      * @param t unix epoch timestamp, unix时间戳
      */
-    inline void syncTime(uint64_t t)
-    {
-        globalTime->setTime(t);
-        if (!this->systemPowerOnTime)
-            this->systemPowerOnTime = t;
-    }
+    void syncTime(uint64_t t);
 
     /**
      * @brief remove wifi ssid and password from database

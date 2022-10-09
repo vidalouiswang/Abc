@@ -36,9 +36,13 @@
 // 认证身份时收到的时间戳多久以前算非法时间戳
 #define ILLEGAL_TIMESPAN_TIMEOUT 600 * 1000
 
-// default app loop stack size
-// 默认 app 循环栈大小
-#define DEFAULT_APP_LOOP_STACK_SIZE 8 * 8192
+// default ota task stack size
+// 默认 ota 任务栈大小
+#define OTA_TASK_DEFAULT_STACK_SIZE 8192
+
+// default ota task priority
+// 默认 ota 任务优先级
+#define OTA_TASK_DEFAULT_PRIOTITY 2
 
 /**
  * @brief

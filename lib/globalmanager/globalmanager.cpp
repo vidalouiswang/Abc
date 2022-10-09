@@ -1,32 +1,51 @@
 #include "globalmanager.h"
 #include <languages.h>
+#include <myfs.h>
+#include <mynet.h>
+#include <esp32time.h>
 
-void mainLoop(void *t)
+void otaTask(void *t)
 {
     for (;;)
     {
-        global->loop();
+        global->ota->client->loop();
+        if (millis() - global->otaStartTime > OTA_WHOLE_PROCESS_TIMEOUT)
+        {
+            delete global->ota;
+            break;
+        }
     }
     vTaskDelete(NULL);
 }
 
-void appLoopWarper(void *t)
+void setup()
 {
-    for (;;)
-    {
-        global->appLoop();
-    }
+    global->beginAll();
+}
 
-    if (global->appLoopHanlde)
-    {
-        vTaskDelete(global->appLoopHanlde);
-        global->appLoopHanlde = NULL;
-    }
+void loop()
+{
+    global->loop();
 }
 
 void GlobalManager::beginAll(WebSocketCallback apCB,
                              WebSocketCallback wifiCB)
 {
+
+#ifdef APP_HAS_EXTRA_LOCAL_WEBSOCKET_CALLBACK
+    // extra local(AP) websocket callback
+    // if built-in command missed, it will be called
+    // 额外的 本地(AP) websocket 回调函数
+    // 如果内置命令没有命中，这个回调函数会被执行
+    global->setExtraLocalWebsocketCallback(extraLocalWebsocketCallback);
+#endif
+#ifdef APP_HAS_EXTRA_REMOTE_WEBSOCKET_CALLBACK
+    // extra remote(WiFi) websocket callback
+    // if built-in command missed, it will be called
+    // 额外的 远程(WiFi) websocket 回调函数
+    // 如果内建命令没有命中，这个回调函数会被执行
+    global->setExtraRemoteWebsocketCallback(extraRemoteWebsocketCallback);
+#endif
 
     // hardware related settings must be set at first
     // set cpu frequency
@@ -53,11 +72,8 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
     // generate device ID
     this->beginUniversalID();
 
-    if (this->appSetup)
-    {
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Run App Setup");
-        this->appSetup();
-    }
+    ESP_LOGD(SYSTEM_DEBUG_HEADER, "Run App Setup");
+    app->setup();
 
     // fill callbacks
     if (apCB)
@@ -88,6 +104,15 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
                             MAIN_LOOP_TASK_CORE      // core 0 / 1
     );
 #endif
+
+    Serial.println("OK");
+}
+
+void GlobalManager::syncTime(uint64_t t)
+{
+    globalTime->setTime(t);
+    if (!this->systemPowerOnTime)
+        this->systemPowerOnTime = t;
 }
 
 void GlobalManager::buildProvidersBuffer(bool buildAll)
@@ -949,7 +974,15 @@ void GlobalManager::internalRemoteMsgHandler(
                         response->push_back(new Element("OTA Update Started"));
 
                         // record start time
-                        this->otaStartTime = millis();
+                        global->otaStartTime = millis();
+
+                        xTaskCreateUniversal(otaTask,
+                                             "otaTask",
+                                             OTA_TASK_DEFAULT_STACK_SIZE,
+                                             NULL,
+                                             OTA_TASK_DEFAULT_PRIOTITY,
+                                             NULL,
+                                             ARDUINO_RUNNING_CORE);
                     }
                 }
             }
@@ -1814,54 +1847,7 @@ void GlobalManager::initializeBasicInformation()
 
 void GlobalManager::loop()
 {
-    if (!this->isInitialized)
-    {
-        return;
-    }
-
-    // pause other loop when ota update running
-    if (this->ota != nullptr)
-    {
-        if (appLoopHanlde)
-        {
-            vTaskSuspend(appLoopHanlde);
-            vTaskDelete(appLoopHanlde);
-            appLoopHanlde = NULL;
-        }
-        // run ota loop
-        this->ota->client->loop();
-        yield();
-        if (millis() - this->otaStartTime > OTA_WHOLE_PROCESS_TIMEOUT)
-        {
-            ESP.restart();
-        }
-    }
-    else
-    {
-        // run app loop
-        if (!this->appLoopHanlde)
-        {
-#ifdef APP_LOOP_STACK_SIZE
-            xTaskCreatePinnedToCore(
-                appLoopWarper,
-                "appLoop",
-                APP_LOOP_STACK_SIZE,
-                NULL,
-                1,
-                &(this->appLoopHanlde),
-                1);
-#else
-            xTaskCreatePinnedToCore(
-                appLoopWarper,
-                "appLoop",
-                DEFAULT_APP_LOOP_STACK_SIZE,
-                NULL,
-                1,
-                &(this->appLoopHanlde),
-                1);
-#endif
-        }
-    }
+    app->loop();
 
 #ifdef SYSTEM_DEBUG_ON
     // process serial input

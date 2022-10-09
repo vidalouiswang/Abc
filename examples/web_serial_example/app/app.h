@@ -1,5 +1,5 @@
 #pragma once
-#include "../src/globalmanager/globalmanager.h"
+#include <globalmanager.h>
 
 /**
  * @brief name of app
@@ -25,30 +25,6 @@
  */
 #define DEFAULT_CPU_FREQ 240
 
-/**
- * @brief indicate app has setup function
- * or not
- *
- * 指示app是否有初始化函数
- *
- */
-#define APP_HAS_SETUP
-
-/**
- * @brief indicate app has main loop function
- *
- * 指示app是否有主循环函数
- *
- */
-#define APP_HAS_LOOP
-
-/**
- * @brief the stack size of current app loop
- * 
- * 当前app循环任务的栈大小
- * 
- */
-#define APP_LOOP_STACK_SIZE 8 * 1024
 
 /**
  * @brief indicate app has custom extra callback
