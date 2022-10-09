@@ -266,6 +266,29 @@ private:
     uint64_t lastDetectServerOnlineTime = 0;
 
     /**
+     * @brief indicate use wifi or not
+     * 指示是否使用wifi
+     */
+    uint8_t isWifiEnabled = 0xffu;
+
+    /**
+     * @brief this pin will be used as when to enable wifi
+     * for example, your application use BT or BLE
+     * but you'd like to enable wifi to use OTA update
+     * at a moment, at this time, you could connect this
+     * pin to 3.3V or GND, it will enable wifi at this boot
+     *
+     * 这个引脚被设置用来启动wifi
+     * 举例，你的应用平时都只使用BT或BLE，
+     * 为了避免共存问题，平时wifi都是关闭的
+     * 但是你可能有时候想要使用OTA升级固件，
+     * 这个时候你可以将这个引脚连接到3.3V或数字地
+     * 这次启动就会启动wifi
+     *
+     */
+    uint8_t enableWifiPin = 0;
+
+    /**
      * @brief the time of the detection request sent
      * 探测请求发出的时间
      */
@@ -382,12 +405,6 @@ private:
      * 设置在 config.h 里
      */
     void makeSureNewFirmwareValid();
-
-    /**
-     * @brief mark current firmware is valid
-     * 标记当前运行的固件是有效的
-     */
-    void markNewFirmwareIsValid();
 
     /**
      * @brief generate a buffer contains user name of other users
@@ -614,6 +631,12 @@ public:
      * 指示AP热点是否已开启
      */
     bool isAPStarted = false;
+
+    /**
+     * @brief mark current firmware is valid
+     * 标记当前运行的固件是有效的
+     */
+    void markNewFirmwareIsValid();
 
     /**
      * @brief close softAP
@@ -983,6 +1006,77 @@ public:
                          { ESP.restart(); },
                          timeout);
     }
+
+    /**
+     * @brief sometimes, when you want to use BT or BLE
+     * you wouldn't like to enable wifi
+     * then you could call this in app setup
+     * attention attached
+     *
+     * 有时候如果你使用 BT 或 BLE
+     * 你不想打开 wifi
+     * 那么你可以在 app 的 setup 函数里调用这个函数
+     * 请阅读注意事项
+     *
+     * @param enable enable wifi 启动wifi
+     * @param enablePin the pin to detect enable wifi or not
+     * 检测是否启动wifi的引脚
+     *
+     * @return true enable wifi at boot 本次启动 启用wifi功能;
+     * @return false your set value or detected result 你设置的选项或检测引脚的结果
+     *
+     * @note
+     * example 例子:
+     *
+     * App::setup() {
+     *
+     *      bool wifiEnabled = global->enableWifi(false, 23);
+     *
+     *      if ( wifiEnabled ) {
+     *          //current boot will use wifi to connect to AP
+     *          //you can do OTA update or other things
+     *          //本次启动将会使用wifi连接到AP
+     *          //你可以做OTA升级或其他工作
+     *      } else {
+     *          //current boot will NOT use wifi
+     *          //you could use BT or BLE
+     *          //本次启动 不会 使用wifi
+     *          //你可以使用BT或BLE
+     *      }
+     * }
+     *
+     * @attention 
+     * when you use this feature, you need to confirm new firmware valid manually
+     * use global->markNewFirmwareIsValid();
+     * 
+     * 当你使用这个功能时，你需要手动确认新固件的有效性
+     * 使用 global->markNewFirmwareIsValid();
+     */
+    inline bool enableWifi(bool enable, uint8_t enablePin = 0, int defaultLevel = HIGH)
+    {
+        if (enablePin)
+        {
+            pinMode(enablePin, INPUT);
+            if (digitalRead(enablePin) == defaultLevel)
+            {
+                delay(50);
+                if (digitalRead(enablePin) == defaultLevel)
+                {
+                    this->isWifiEnabled = 0xffu;
+                    return true;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            this->isWifiEnabled = enable ? 0xffu : 0x00u;
+            return enable;
+        }
+    }
 };
 
 /**
@@ -990,6 +1084,6 @@ public:
  * use pointer to distinguish
  *
  * 全局管理器的全局对象
- * 使用指针类型用以区分
+ * 使用指针用以区分
  */
 extern GlobalManager *global;

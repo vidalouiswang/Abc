@@ -1394,44 +1394,47 @@ void GlobalManager::initializeBasicInformation()
         this->nickname = this->UniversalID;
     }
 
-    // mark if there wifi information in flash
-    this->isWiFiInfoOK =
-        db("wifiSSID")->getString().length() && db("wifiPwd")->getString().length();
+    if (this->isWifiEnabled)
+    {
+        // mark if there wifi information in flash
+        this->isWiFiInfoOK =
+            db("wifiSSID")->getString().length() && db("wifiPwd")->getString().length();
 
 #ifdef ENABLE_DEALY_START_AP
-    this->setTimeout(
-        []()
-        {
-            // start ap
-            global->startAP();
-        },
-        DELAY_START_AP_TIMEOUT);
+        this->setTimeout(
+            []()
+            {
+                // start ap
+                global->startAP();
+            },
+            DELAY_START_AP_TIMEOUT);
 #else
-    // start ap
-    this->startAP();
+        // start ap
+        this->startAP();
 #endif
 
-    if (this->isWiFiInfoOK && this->userName.available() && this->password.available())
-    {
-        // connect to wifi if wifi ssid and password detected in database
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "wifi ssid and password detected in database");
+        if (this->isWiFiInfoOK && this->userName.available() && this->password.available())
+        {
+            // connect to wifi if wifi ssid and password detected in database
+            ESP_LOGD(SYSTEM_DEBUG_HEADER, "wifi ssid and password detected in database");
 
-        // connect wifi
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Connecting to wifi...");
-        this->connectWifi();
-    }
-    else
-    {
+            // connect wifi
+            ESP_LOGD(SYSTEM_DEBUG_HEADER, "Connecting to wifi...");
+            this->connectWifi();
+        }
+        else
+        {
 #ifdef PRESET_WIFI_SSID
 #ifdef PRESET_WIFI_PASSWORD
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Connecting to wifi...");
-        this->connectWifi();
+            ESP_LOGD(SYSTEM_DEBUG_HEADER, "Connecting to wifi...");
+            this->connectWifi();
 #else
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "No WiFi information detected in database");
+            ESP_LOGD(SYSTEM_DEBUG_HEADER, "No WiFi information detected in database");
 #endif
 #else
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "No WiFi information detected in database");
+            ESP_LOGD(SYSTEM_DEBUG_HEADER, "No WiFi information detected in database");
 #endif
+        }
     }
 
 #ifdef BUILT_IN_FUNCTION_PROVIDER
@@ -1879,7 +1882,7 @@ void GlobalManager::loop()
 #endif
 
 #ifdef PROACTIVE_DETECT_REMOTE_SERVER
-    if (!this->ota && this->isWifiConnected)
+    if (this->isWifiEnabled && !this->ota && this->isWifiConnected)
     {
         auto t = millis();
 
@@ -1924,7 +1927,8 @@ void GlobalManager::loop()
 
 #endif
 
-    if (this->ota == nullptr && this->isWifiConnected && this->isServerOnline)
+    // if optional wifi enabled, user should mark new firmware valid themselves
+    if (this->isWifiEnabled && this->ota == nullptr && this->isWifiConnected && this->isServerOnline)
     {
         auto t = millis();
         if (this->isNewFirmwareBoot && this->remoteWebsocketConnectedTimestamp)
@@ -1946,12 +1950,12 @@ void GlobalManager::loop()
     }
 
     // loop remote websockets
-    if (this->isWifiConnected && this->websocketClient)
+    if (this->isWifiEnabled && this->isWifiConnected && this->websocketClient)
     {
         this->websocketClient->loop();
     }
 
-    if (!this->isWifiConnected)
+    if (this->isWifiEnabled && !this->isWifiConnected)
     {
         if (this->isWiFiInfoOK)
         {
@@ -1965,7 +1969,7 @@ void GlobalManager::loop()
     }
 
     // loop ap server
-    if (this->isAPStarted && this->apServer)
+    if (this->isWifiEnabled && this->isAPStarted && this->apServer)
     {
         this->apServer->loop();
     }
