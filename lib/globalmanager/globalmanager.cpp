@@ -539,6 +539,11 @@ void GlobalManager::connectWifi()
 #endif
     }
 
+    if (WiFi.getMode() != WIFI_MODE_APSTA)
+    {
+        WiFi.mode(WIFI_MODE_APSTA);
+    }
+
     // connect wifi
     WiFi.begin(wifiSSID.c_str(), wifiPwd.c_str());
 

@@ -12,8 +12,6 @@ bool MyNet::startAP(const char *ssid, IPAddress *apIP, const char *pwd)
         return false;
     }
 
-    WiFi.mode(WIFI_MODE_APSTA);
-    WiFi.enableSTA(true);
     WiFi.enableAP(true);
 
     WiFi.onEvent(
