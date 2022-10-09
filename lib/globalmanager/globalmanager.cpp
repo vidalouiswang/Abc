@@ -105,7 +105,7 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
     );
 #endif
 
-    Serial.println("OK");
+    Serial.println("OK!");
 }
 
 void GlobalManager::syncTime(uint64_t t)
