@@ -1008,12 +1008,13 @@ public:
      */
     uint8_t isSerialDataLoopBack = 0xffu;
 
-    String serialCommand = "";
-
     inline void enableSerialDataLoopBack(bool enable)
     {
         this->isSerialDataLoopBack = enable ? 0xffu : 0x00u;
+        this->setSerialRecvCb();
     }
+
+    void setSerialRecvCb();
 
     /**
      * @brief sometimes, when you want to use BT or BLE

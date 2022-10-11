@@ -274,8 +274,6 @@
             let div = create();
             div.className = "deviceMore";
 
-
-
             div.ondblclick = e => {
                 let tagName = e.target.tagName;
                 if (tagName.toLowerCase() == "div") {
@@ -283,11 +281,52 @@
                 }
             };
 
+            let divSerial = create();
+            divSerial.className = "serialDataWarper serialDataWarperHide";
 
+
+            let txtSerial = create("textarea");
+
+            txtSerial.className = "serialDataContainer serialDataContainerHide";
+            txtSerial.rows = "5";
+
+            this.serialDataContainer = txtSerial;
+            this.serialMode = 0;
+            this.msgEncoding = 0;
 
             div.appendChild(createButton("id: " + this.info.id));
             div.appendChild(createButton("版本: " + this.info.firmwareVersion));
             div.appendChild(createButton("App版本: " + this.info.appVersion));
+
+            let btnSerialMode = createButton("串口监视器模式", e => {
+                this.serialMode = !this.serialMode;
+
+                if (this.serialMode) {
+                    divSerial.className = "serialDataWarper";
+                    btnSerialMode.innerText = "消息模式";
+                } else {
+                    divSerial.className = "serialDataWarper serialDataWarperHide";
+                    btnSerialMode.innerText = "串口监视器模式";
+                }
+            });
+
+            let btnMsgEncoding = createButton("hex", e => {
+                if (++this.msgEncoding == 2) {
+                    this.msgEncoding = 0;
+                }
+
+                btnMsgEncoding.innerText = this.msgEncoding ? ("utf8") : ("hex");
+            });
+
+            let btnClear = createButton("clear", e => {
+                txtSerial.value = "";
+            });
+
+            div.appendChild(btnSerialMode);
+            divSerial.appendChild(txtSerial);
+            divSerial.appendChild(btnClear);
+            divSerial.appendChild(btnMsgEncoding);
+            div.appendChild(divSerial);
 
             this.moreContainer = div;
         }
@@ -441,19 +480,40 @@
             showMsg(content);
         }
         showMsg(msg, timeout) {
+            if (getType(msg) == "u8a") {
+                let arr = decodeArrayBuffer(msg.buffer);
+                if (!arr.length) {
+                    if (!this.msgEncoding) {
+                        msg = new TextDecoder().decode(msg);
+                    } else {
+                        msg = msg.toHex();
+                    }
+
+                } else {
+                    msg = msg[0];
+                }
+            }
+
             if (getType(msg) == "b") {
                 msg = Number(msg);
             }
             if (getType(msg) == "number") {
                 msg = msg.toString();
             }
-            if (this.tShowMsg) {
-                clearTimeout(this.tShowMsg);
+
+
+
+            if (this.serialMode) {
+                this.serialDataContainer.value += msg;
+            } else {
+                if (this.tShowMsg) {
+                    clearTimeout(this.tShowMsg);
+                }
+                this.nicknameContainer.children[0].innerText = msg;
+                this.tShowMsg = setTimeout(() => {
+                    this.nicknameContainer.children[0].innerText = this.info.nickname;
+                }, timeout || 10000);
             }
-            this.nicknameContainer.children[0].innerText = msg;
-            this.tShowMsg = setTimeout(() => {
-                this.nicknameContainer.children[0].innerText = this.info.nickname;
-            }, timeout || 10000);
         }
     }
     w.Device = Device;

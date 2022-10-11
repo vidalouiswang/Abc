@@ -105,6 +105,8 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
     );
 #endif
 
+    this->setSerialRecvCb();
+
     Serial.println("OK!");
 }
 
@@ -1899,25 +1901,28 @@ void GlobalManager::initializeBasicInformation()
     this->isInitialized = true;
 }
 
+void GlobalManager::setSerialRecvCb()
+{
+    Serial.onReceive(
+        [this]()
+        {
+            if (this->isSerialDataLoopBack && this->isWifiEnabled && this->isWifiConnected)
+            {
+                char buf[128] = {0};
+                size_t size = 0;
+
+                while (Serial.available() > 0)
+                {
+                    size = Serial.readBytes(buf, Serial.available());
+                    this->webSerial(new Element(true, (uint8_t *)buf, size));
+                }
+            }
+        });
+}
+
 void GlobalManager::loop()
 {
     app->loop();
-
-    if (this->isSerialDataLoopBack && this->isWifiEnabled && this->isWifiConnected)
-    {
-        // process serial input
-        if (Serial.available() > 0)
-        {
-            this->serialCommand += (char)Serial.read();
-            if (this->serialCommand.endsWith("\r") ||
-                this->serialCommand.endsWith("\n") ||
-                this->serialCommand.endsWith("\r\n"))
-            {
-                this->webSerial(new Element(this->serialCommand));
-                this->serialCommand = "";
-            }
-        }
-    }
 
 #ifdef PROACTIVE_DETECT_REMOTE_SERVER
     if (this->isWifiEnabled && !this->ota && this->isWifiConnected)

@@ -10,6 +10,29 @@
             background-image: radial-gradient(circle at 30% 30%, #1574a8, #666);
         }
 
+        .serialDataContainer {
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            margin: 0.5rem;
+            width: 98%;
+            border: solid 0.1rem #1574a8;
+            border-radius: 0.3rem;
+        }
+
+        .serialDataWarper {
+            width: 100%;
+            height: auto;
+            margin: 0.5rem;
+            opacity: 1;
+        }
+
+        .serialDataWarperHide {
+            height: 0;
+            width: 0;
+            margin: 0;
+            opacity: 0;
+        }
+
         .divLogin {
             position: absolute;
             top: 50%;
@@ -129,6 +152,7 @@
             justify-items: center;
             backdrop-filter: blur(0.3rem);
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .deviceMoreShow {

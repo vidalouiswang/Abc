@@ -428,9 +428,7 @@
                                 }
                             } else {
                                 device.showMsg(
-                                    getType(arr[3]) == "u8a" ?
-                                        decodeArrayBuffer(arr[3].buffer) :
-                                        arr[3]
+                                    arr[3]
                                 );
                             }
 
