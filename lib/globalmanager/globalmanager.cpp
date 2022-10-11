@@ -1443,6 +1443,52 @@ void GlobalManager::initializeBasicInformation()
         true,
         [](ProviderArguments arguments) -> Element *
         {
+            if (!arguments->size())
+                return nullptr;
+
+            Element *payload = arguments->at(0);
+
+            Element *rtnValue = new Element("OK");
+
+            auto typeOfPayload = payload->getType();
+            if (typeOfPayload == NONE)
+                return nullptr;
+
+            if (typeOfPayload == STRING)
+            {
+                if (payload->getRawBufferLength() > 2)
+                {
+                    Serial.write(payload->c_str(), payload->getRawBufferLength() - 1);
+                }
+                else
+                {
+                    *rtnValue = "empty string";
+                }
+            }
+            else if (typeOfPayload == U8A)
+            {
+                if (payload->getRawBufferLength())
+                {
+                    Serial.write(payload->getUint8Array(), payload->getU8aLen());
+                }
+                else
+                {
+                    *rtnValue = "empty buffer";
+                }
+            }
+            else
+            {
+                *rtnValue = "type error";
+            }
+
+            return rtnValue;
+        },
+        PI_WEB_SERIAL, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_ENCRYPT), 1);
+
+    this->createProvider(
+        true,
+        [](ProviderArguments arguments) -> Element *
+        {
             esp_reset_reason_t reason = esp_reset_reason();
             String strReason = "";
             switch (reason)
@@ -1857,29 +1903,21 @@ void GlobalManager::loop()
 {
     app->loop();
 
-#ifdef SYSTEM_DEBUG_ON
-    // process serial input
-    if (Serial.available() > 0)
+    if (this->isSerialDataLoopBack && this->isWifiEnabled && this->isWifiConnected)
     {
-        serialCommand += (char)Serial.read();
-        if (serialCommand.endsWith("\r") || serialCommand.endsWith("\n"))
+        // process serial input
+        if (Serial.available() > 0)
         {
-            Element *res;
-            for (uint32_t i = 0; i < this->providers->size(); ++i)
+            this->serialCommand += (char)Serial.read();
+            if (this->serialCommand.endsWith("\r") ||
+                this->serialCommand.endsWith("\n") ||
+                this->serialCommand.endsWith("\r\n"))
             {
-                if (
-                    this->providers->at(i)->match(
-                        serialCommand))
-                {
-                    res = this->providers->at(i)->cb(&serialCommand);
-                    break;
-                }
+                this->webSerial(new Element(this->serialCommand));
+                this->serialCommand = "";
             }
-            serialCommand = "";
-            ESP_LOGD(SYSTEM_DEBUG_HEADER, "Command response: %s", res->getString().c_str());
         }
     }
-#endif
 
 #ifdef PROACTIVE_DETECT_REMOTE_SERVER
     if (this->isWifiEnabled && !this->ota && this->isWifiConnected)

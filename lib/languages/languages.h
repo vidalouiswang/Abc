@@ -40,6 +40,8 @@
 #define PI_USER_DELETED "用户删除成功"
 #define PI_ADD_MODIFY_DELETE_USER "(添加/修改/删除)用户"
 
+#define PI_WEB_SERIAL "发送数据到串口"
+
 #define PI_DATABASE_UPDATED "数据库已更新"
 #define PI_QUERY_UPDATE_MAIN_DATABASE_OR_LIST_ALL_KEYS_IN_MAIN_DATABASE \
     "((查询/更新)主数据库)/(列出所有主数据库中的所有键)"
@@ -117,6 +119,8 @@
 
 #define PI_USER_DELETED "User removed"
 #define PI_ADD_MODIFY_DELETE_USER "(Add/Update/Remove)User"
+
+#define PI_WEB_SERIAL "Send data to serial"
 
 #define PI_DATABASE_UPDATED "Database updated"
 #define PI_QUERY_UPDATE_MAIN_DATABASE_OR_LIST_ALL_KEYS_IN_MAIN_DATABASE \

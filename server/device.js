@@ -67,6 +67,54 @@
                 argument.type = "text";
                 argument.className = "LoginInput";
                 argument.placeholder = i.toString();
+                argument.addEventListener("keyup", e => {
+                    if (/^@hex/.test(argument.value)) {
+                        argument.hexMode = !0;
+                        argument.placeholder = "Hex Mode (" + i.toString() + ")";
+                        argument.value = "";
+                    }
+                    if (/^@qhex/.test(argument.value)) {
+                        argument.hexMode = 0;
+                        argument.placeholder = i.toString();
+                        argument.value = "";
+                    }
+                });
+
+                argument.addEventListener("dragover", function (e) {
+                    e.preventDefault();
+                    e.cancelBubble = true;
+                    return false;
+                });
+                argument.addEventListener("drop", function (e) {
+                    e.preventDefault();
+                    e.cancelBubble = true;
+                    if (e.dataTransfer) {
+                        let file = e.dataTransfer.files[0]
+                        let reader = new FileReader();
+                        let fileName = file.name;
+
+                        if (fileName.endsWith(".hex") || fileName.endsWith(".txt")) {
+                            reader.readAsText(file, 'utf-8');
+                        } else if (fileName.endsWith(".bin")) {
+                            reader.readAsArrayBuffer(file);
+                        } else {
+                            showMsg("未知类型 Unknown type");
+                            return;
+                        }
+
+                        reader.onload = function (e) {
+                            showMsg("文件已加载 File loaded")
+                            if (fileName.endsWith(".hex") || fileName.endsWith(".txt")) {
+                                argument.attachedHexContent = e.target.result;
+                            } else {
+                                argument.attachedBinaryContent = e.target.result;
+                            }
+                        };
+                    }
+
+                    return false;
+                });
+
                 this.arguments.push(argument);
                 div.appendChild(argument);
             }
@@ -91,7 +139,71 @@
 
             let arrArguments = [];
             for (let i of this.arguments) {
-                arrArguments.push(i.value);
+
+                if (i.hexMode || i.attachedHexContent || i.attachedBinaryContent) {
+                    let u8a = null;
+                    let hex = i.attachedHexContent ? i.attachedHexContent.trim() : i.value.trim();
+
+                    if (i.attachedBinaryContent) {
+                        u8a = new Uint8Array(i.attachedBinaryContent);
+                    } else {
+                        if (/[^0-9a-fA-F ,]/.test(hex)) {
+                            showMsg("非法字符 Invalid char");
+                            return;
+                        }
+
+                        if (hex.length === 2) {
+                            u8a = new Uint8Array(1);
+                            u8a[0] = parseInt(hex, 16);
+                        } else {
+                            let isSpliterExists = /[a-fA-F0-9]{1,2}( |,)[a-fA-F0-9]{1,2}/.test(hex);
+
+                            if (isSpliterExists) {
+                                let arr = hex.split(/[\s,]/);
+
+                                if (arr.length) {
+                                    for (let j = 0; j < arr.length; ++j) {
+                                        arr[j] = arr[j].trim();
+                                        if (!arr[j].length) {
+                                            arr.splice(j, 1);
+                                            if (j > 0) {
+                                                j--;
+                                            }
+                                            continue;
+                                        }
+                                        arr[j] = parseInt(arr[j], 16);
+                                    }
+                                    u8a = new Uint8Array(arr);
+                                } else {
+                                    showMsg("无内容 Empty content");
+                                    return;
+                                }
+                            } else {
+                                if (hex.length % 2) {
+                                    showMsg("非法长度 Invalid length");
+                                    return;
+                                }
+
+                                let arr = [];
+
+                                let unit = "";
+
+                                for (let j = 0; j < hex.length; j += 2) {
+                                    unit = hex.substring(j, j + 2).trim();
+                                    if (unit.length) {
+                                        arr.push(parseInt(unit, 16));
+                                    }
+                                }
+                                u8a = new Uint8Array(arr);
+                            }
+                        }
+                    }
+
+                    arrArguments.push(u8a);
+                } else {
+                    arrArguments.push(i.value);
+                }
+
             }
 
             let command = BigInt("0xC0000000000000BB"); // 0x80 | 0x40, fixed 80, 0x40 == 0b01000000, message should be confirmed
@@ -164,7 +276,7 @@
 
 
 
-            div.onclick = e => {
+            div.ondblclick = e => {
                 let tagName = e.target.tagName;
                 if (tagName.toLowerCase() == "div") {
                     this.moreContainer.className = "deviceMore";

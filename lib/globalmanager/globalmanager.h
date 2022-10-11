@@ -206,14 +206,6 @@ private:
      */
     WebSocketCallback extraAPWebsocketCallback = nullptr;
 
-#ifdef SYSTEM_DEBUG_ON
-    /**
-     * @brief a buffer for command read from hard serial
-     * 从硬件串口读取命令的缓冲区
-     *
-     */
-    String serialCommand = "";
-#endif
     /**
      * @brief mark ssid and password for remote connection existed in database
      * 标识数据库中是否存在用于远程连接的wifi ssid 和密码
@@ -1008,6 +1000,22 @@ public:
     }
 
     /**
+     * @brief indicate that esp32 send data from hard serial
+     * to admin through websocket
+     *
+     * 指示esp32是否将硬件串口的数据通过websocket转发给管理员
+     *
+     */
+    uint8_t isSerialDataLoopBack = 0xffu;
+
+    String serialCommand = "";
+
+    inline void enableSerialDataLoopBack(bool enable)
+    {
+        this->isSerialDataLoopBack = enable ? 0xffu : 0x00u;
+    }
+
+    /**
      * @brief sometimes, when you want to use BT or BLE
      * you wouldn't like to enable wifi
      * then you could call this in app setup
@@ -1045,10 +1053,10 @@ public:
      *      }
      * }
      *
-     * @attention 
+     * @attention
      * when you use this feature, you need to confirm new firmware valid manually
      * use global->markNewFirmwareIsValid();
-     * 
+     *
      * 当你使用这个功能时，你需要手动确认新固件的有效性
      * 使用 global->markNewFirmwareIsValid();
      */
