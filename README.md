@@ -24,6 +24,8 @@ This library is for beginners who want to write their own code, but don't have m
 * Stable and fast Websocket implement.
 * One line code to get SHA1 and SHA256 using ESP32 hardware acceleration with variant types of input data.
 * One line code to encrypt or decrypt data with AES-256-CBC.
+* Develop without connect your board to computer, only provide power supply, use built-in fully automatic OTA update.
+* Easily transfer data from web page to serial or transfer data from serial to web page.
 * More features are in development...
 
 These features especially designed for beginners, easy to use and have strong scalability. For experts, please ignore.
