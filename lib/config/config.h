@@ -30,7 +30,7 @@
 
 // a timeout that reboot esp32 when ota failed for unknown reason
 // 当ota由于不明原因升级失败时重启的超时
-#define OTA_UPDATE_HARD_RESET_TIMEOUT 1000 * 60 * 5
+#define OTA_UPDATE_HARD_RESET_TIMEOUT 1000 * 60 * 10
 
 // for authorize process, how long when a timestamp accepted that consider it is illegal
 // 认证身份时收到的时间戳多久以前算非法时间戳
@@ -42,7 +42,7 @@
 
 // default ota task priority
 // 默认 ota 任务优先级
-#define OTA_TASK_DEFAULT_PRIOTITY 2
+#define OTA_TASK_DEFAULT_PRIOTITY 6
 
 /**
  * @brief
@@ -59,7 +59,7 @@
 
 /**
  * @brief preset wifi ssid
- * 
+ *
  * 预设wifi名称
  *
  */
@@ -67,9 +67,9 @@
 
 /**
  * @brief preset wifi password
- * 
+ *
  * 预设wifi密码
- * 
+ *
  */
 //#define PRESET_WIFI_PASSWORD "12345678"
 
@@ -143,12 +143,12 @@
  * @note because of the iOS and MacOS shortcut don't
  * support SHA256 calculation, so you can use SHA1 for
  * authorization
- * 
+ *
  * Now Apple shortcut already support SHA256
  *
  * 因为iOS和MacOS的捷径无法进行SHA256运算，所以你可以打开此选项
  * 以允许使用SHA1进行认证
- * 
+ *
  * 现在苹果捷径已支持SHA256
  *
  * @attention SHA1 is not safe for user authorization
@@ -373,13 +373,6 @@
 // hash for authorize
 // 用于认证的哈希
 #define OFFSET_START_OTA_HASH 5
-
-// timeout of the whole process of ota
-// if esp32 didn't finish ota update process in time
-// it will reboot
-// 整个ota升级过程的超时时间
-// 如果没有在规定时间内完成升级则重启
-#define OTA_WHOLE_PROCESS_TIMEOUT 600 * 1000
 
 // for reponse to server that message has been confirmed
 // 用于回应服务器消息已经收到

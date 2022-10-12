@@ -22,6 +22,7 @@
 #include "../../src/app/app.h"
 #include <ota.h>
 #include <provider.h>
+#include <softtimer.h>
 //#include <DNSServer.h>
 
 // disposable hash
@@ -52,76 +53,6 @@ typedef std::function<void(myWebSocket::WebSocketClient *client,
                            std::vector<Element *> *output)>
     WebSocketCallback;
 
-/**
- * @brief This class implements the delay function, using the method of software polling
- * The reason why the hardware timer is not used is because the software method is more controllable
- * It is not easy to cause various panics in complex code environment
- *
- * 这个类实现了延迟函数的功能，使用的是软件轮询的方式
- * 之所以不用硬件定时器是因为软件方式更可控
- * 不容易在复杂的代码环境中造成各种panic
- */
-class Timeout
-{
-private:
-    /**
-     * @brief timeout
-     * 超时时间
-     *
-     */
-    uint64_t timeout = 0;
-
-    /**
-     * @brief the time that task built
-     * 任务被建立的时间
-     *
-     */
-    uint64_t buildTime = 0;
-
-    /**
-     * @brief callback for task
-     * 任务的回调函数
-     *
-     */
-    std::function<void(void)> fn = nullptr;
-
-public:
-    /**
-     * @brief indicate that current task disposed or not
-     * 指示当前任务是否已经执行完毕
-     *
-     */
-    bool disposed = false;
-
-    /**
-     * @brief loop of task
-     * 任务的循环
-     *
-     * @param t millis()
-     */
-    inline void loop(uint64_t t)
-    {
-        if (t - this->buildTime > this->timeout)
-        {
-            this->disposed = true;
-            this->fn();
-        }
-    }
-
-    /**
-     * @brief default constructor
-     * 默认构造函数
-     *
-     * @param fn
-     * @param timeout
-     */
-    inline Timeout(std::function<void(void)> fn, uint64_t timeout) : fn(fn), timeout(timeout), disposed(false)
-    {
-        this->buildTime = millis();
-    }
-    inline ~Timeout() {}
-};
-
 class GlobalManager
 {
 private:
@@ -140,11 +71,6 @@ private:
      */
     Element *UniversalID = nullptr;
 
-    /**
-     * @brief indicate that system initialized
-     * 指示系统是否初始化
-     */
-    bool isInitialized = false;
 
     /**
      * @brief administrator user name, uint8 array
@@ -432,12 +358,6 @@ private:
     bool isProviderBufferShrank = false;
 
     /**
-     * @brief software task container
-     * 软件任务的容器
-     */
-    std::vector<Timeout *> timeouts;
-
-    /**
      * @brief register buffer
      * 注册用的缓存
      */
@@ -561,25 +481,7 @@ public:
      */
     uint64_t systemPowerOnTime = 0;
 
-    /**
-     * @brief create a task with timeout
-     * 建立一个延时任务
-     *
-     * @param fn callback 回调函数
-     * @param timeout timeout 延时时间
-     * @return Timeout* pointer of task object 任务对象的指针
-     */
-    Timeout *setTimeout(std::function<void(void)> fn, uint64_t timeout);
 
-    /**
-     * @brief cancel a timeout task
-     * 取消一个延时任务
-     *
-     * @param obj pointer to task object 任务对象的指针
-     * @return true success 成功
-     * @return false failed 失败
-     */
-    bool clearTimeout(Timeout *obj);
 
     /**
      * @brief incomming command from local area another device
@@ -994,7 +896,7 @@ public:
      */
     inline void delayReboot(uint32_t timeout = 3000U)
     {
-        this->setTimeout([]()
+        setTimeout([]()
                          { ESP.restart(); },
                          timeout);
     }

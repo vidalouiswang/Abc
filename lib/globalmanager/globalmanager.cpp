@@ -9,11 +9,6 @@ void otaTask(void *t)
     for (;;)
     {
         global->ota->client->loop();
-        if (millis() - global->otaStartTime > OTA_WHOLE_PROCESS_TIMEOUT)
-        {
-            delete global->ota;
-            break;
-        }
     }
     vTaskDelete(NULL);
 }
@@ -217,15 +212,7 @@ void GlobalManager::startAP()
         myNet.startAP(ssid.c_str(), this->apIP);
 #endif
     }
-
-    this->isAPStarted = true;
-
     ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP started");
-
-    // dns
-    // dnsServer = new DNSServer();
-    // dnsServer->start(53, "*", apIP);
-    // print("dns server online");
 
     if (!this->apServer)
     {
@@ -255,6 +242,13 @@ void GlobalManager::startAP()
 
     // start combined server
     apServer->begin(80);
+
+    // dns
+    // dnsServer = new DNSServer();
+    // dnsServer->start(53, "*", apIP);
+    // print("dns server online");
+
+    this->isAPStarted = true;
 
     ESP_LOGD(SYSTEM_DEBUG_HEADER, "Local server online");
 }
@@ -452,39 +446,6 @@ void GlobalManager::sendHello(bool hello, myWebSocket::WebSocketClient *client)
         sender->send(buffer, 2);
 }
 
-Timeout *GlobalManager::setTimeout(std::function<void(void)> fn, uint64_t timeout)
-{
-    Timeout *obj = new Timeout(fn, timeout);
-    this->timeouts.push_back(obj);
-    return obj;
-}
-
-bool GlobalManager::clearTimeout(Timeout *obj)
-{
-    if (obj)
-    {
-        bool exists = false;
-        for (std::vector<Timeout *>::iterator it = this->timeouts.begin();
-             it != this->timeouts.end();
-             ++it)
-        {
-            if ((*it) == obj)
-            {
-                this->timeouts.erase(it);
-                exists = true;
-                break;
-            }
-        }
-
-        if (exists)
-        {
-            std::vector<Timeout *>().swap(this->timeouts);
-            return true;
-        }
-    }
-    return false;
-}
-
 void GlobalManager::commandFromEspNow(uint8_t *data, uint32_t length)
 {
 }
@@ -672,7 +633,7 @@ void GlobalManager::internalLocalMsgHandler(
             (*(db)("rebootReason")) = "ap manual reboot";
             db.flush();
             // prepare reboot
-            this->setTimeout(
+            setTimeout(
                 []()
                 {
                     ESP.restart();
@@ -696,7 +657,7 @@ void GlobalManager::internalLocalMsgHandler(
             (*(db)("rebootReason")) = "ap rollback";
             db.flush();
             // prepare for rollback firmware
-            this->setTimeout(
+            setTimeout(
                 []()
                 {
                     esp_ota_mark_app_invalid_rollback_and_reboot();
@@ -710,7 +671,7 @@ void GlobalManager::internalLocalMsgHandler(
             response->push_back(new Element(CMD_AP_DEEPSLEEP));
 
             // manual deepsleep
-            this->setTimeout(
+            setTimeout(
                 []()
                 {
                     ESP.deepSleep(600 * 1000 * 1000);
@@ -938,7 +899,7 @@ void GlobalManager::internalRemoteMsgHandler(
                     if (isAdmin) // only administrator has authority to do this action
                     {
                         // setup a hard reset when ota update failed for unknown reason
-                        this->setTimeout(
+                        setTimeout(
                             []()
                             {
                                 ESP.restart();
@@ -1403,7 +1364,7 @@ void GlobalManager::initializeBasicInformation()
             db("wifiSSID")->getString().length() && db("wifiPwd")->getString().length();
 
 #ifdef ENABLE_DEALY_START_AP
-        this->setTimeout(
+        setTimeout(
             []()
             {
                 // start ap
@@ -1686,9 +1647,9 @@ void GlobalManager::initializeBasicInformation()
             }
             *(db("rebootReason")) = "rollback";
             db.flush();
-            global->setTimeout([]()
-                               { esp_ota_mark_app_invalid_rollback_and_reboot(); },
-                               3000);
+            setTimeout([]()
+                       { esp_ota_mark_app_invalid_rollback_and_reboot(); },
+                       3000);
             return new Element(PI_WILL_ROLLBACK_IN_TIMEOUT_SECONDS);
         },
         PI_ROLLBACK, (PROVIDER_ADMIN | PROVIDER_COMMON | PROVIDER_QUESTION));
@@ -1762,7 +1723,7 @@ void GlobalManager::initializeBasicInformation()
             char rtnValue[64] = {0};
             if (!arguments->size())
             {
-                global->setTimeout(
+                setTimeout(
                     []()
                     {
                         *(db("rebootReason")) = "deep sleep";
@@ -1778,7 +1739,7 @@ void GlobalManager::initializeBasicInformation()
                 if (arguments->at(0)->getType(true) == NUMBER)
                 {
                     uint32_t t = arguments->at(0)->getNumber();
-                    global->setTimeout(
+                    setTimeout(
                         [t]()
                         {
                             *(db("rebootReason")) = "deep sleep";
@@ -1897,8 +1858,6 @@ void GlobalManager::initializeBasicInformation()
         PI_FREE_SPACE, (PROVIDER_ADMIN | PROVIDER_COMMON));
 
 #endif
-
-    this->isInitialized = true;
 }
 
 void GlobalManager::setSerialRecvCb()
@@ -1970,75 +1929,53 @@ void GlobalManager::loop()
 
 #endif
 
-    // if optional wifi enabled, user should mark new firmware valid themselves
-    if (this->isWifiEnabled && this->ota == nullptr && this->isWifiConnected && this->isServerOnline)
+    if (this->isWifiEnabled)
     {
-        auto t = millis();
-        if (this->isNewFirmwareBoot && this->remoteWebsocketConnectedTimestamp)
-        {
-            if (t - this->remoteWebsocketConnectedTimestamp > CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT)
-            {
-                ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware is valid");
-                this->markNewFirmwareIsValid();
-            }
-        }
-
-        if (this->isAPStarted &&
-            t - this->remoteWebsocketConnectedTimestamp > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
-        {
-            ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
-            this->remoteWebsocketConnectedTimestamp = t;
-            this->closeAP();
-        }
-    }
-
-    // loop remote websockets
-    if (this->isWifiEnabled && this->isWifiConnected && this->websocketClient)
-    {
-        this->websocketClient->loop();
-    }
-
-    if (this->isWifiEnabled && !this->isWifiConnected)
-    {
-        if (this->isWiFiInfoOK)
+        // if optional wifi enabled, user should mark new firmware valid themselves
+        if (this->ota == nullptr && this->isWifiConnected && this->isServerOnline)
         {
             auto t = millis();
-            if (t - this->lastConnectWiFiTime > AUTO_CONNECT_WIFI_TIMEOUT)
+            if (this->isNewFirmwareBoot && this->remoteWebsocketConnectedTimestamp)
             {
-                this->lastConnectWiFiTime = t;
-                this->connectWifi();
+                if (t - this->remoteWebsocketConnectedTimestamp > CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT)
+                {
+                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware is valid");
+                    this->markNewFirmwareIsValid();
+                }
             }
-        }
-    }
 
-    // loop ap server
-    if (this->isWifiEnabled && this->isAPStarted && this->apServer)
-    {
-        this->apServer->loop();
-    }
-
-    if (this->timeouts.size())
-    {
-        auto t = millis();
-        bool disposed = false;
-
-        for (uint32_t i = 0; i < this->timeouts.size(); ++i)
-        {
-            this->timeouts.at(i)->loop(t);
-        }
-        for (uint32_t i = 0; i < this->timeouts.size(); ++i)
-        {
-            if (this->timeouts.at(i)->disposed)
+            if (this->isAPStarted &&
+                t - this->remoteWebsocketConnectedTimestamp > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
             {
-                delete this->timeouts.at(i);
-                this->timeouts.erase(this->timeouts.begin() + i);
-                disposed = true;
+                ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
+                this->remoteWebsocketConnectedTimestamp = t;
+                this->closeAP();
             }
         }
 
-        if (disposed)
+        // loop remote websockets
+        if (this->isWifiConnected && this->websocketClient)
         {
-            std::vector<Timeout *>().swap(this->timeouts);
+            this->websocketClient->loop();
+        }
+
+        if (!this->isWifiConnected)
+        {
+            if (this->isWiFiInfoOK)
+            {
+                auto t = millis();
+                if (t - this->lastConnectWiFiTime > AUTO_CONNECT_WIFI_TIMEOUT)
+                {
+                    this->lastConnectWiFiTime = t;
+                    this->connectWifi();
+                }
+            }
+        }
+
+        // loop ap server
+        if (this->isAPStarted && this->apServer)
+        {
+            this->apServer->loop();
         }
     }
 
