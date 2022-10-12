@@ -160,7 +160,6 @@ sudo pm2 restart iot.js
     * 源文件:
 
         * /lib/arraybuffer/arraybuffer.cpp
-        * /src/main/main.cpp
         * 示例的所有源文件
 
 * 服务器

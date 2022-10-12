@@ -167,7 +167,6 @@ More information and examples refer to /examples/ , full comments in it.
     * Source File:
 
         * /lib/arraybuffer/arraybuffer.cpp
-        * /src/main/main.cpp
         * /examples/*.cpp
 
 * Server:
