@@ -17,15 +17,15 @@ This library is for beginners who want to write their own code, but don't have m
 
 ### Features
 
-* Built-in convenient OTA update without extra code.
-* Rollback firmware when new frimware error at boot state automatically(esp32-arduino library closed this function from esp-idf, this library implemented this feature without modify SDK that downloaded by Platform IO).
-* Easy method to store or transfer integer, string, binary data without other format(like json).
+* Built-in convenient, **fast and stable OTA update feature without even one line extra code**.
+* Rollback firmware when new frimware error at boot state automatically(esp32-arduino library closed this function from esp-idf, **this library implemented this feature without modify SDK that downloaded by Platform IO**).
+* Easy method to store or transfer integer, string, binary data without other format(like json), it will save more space or bandwidth when you storing those data into storage or transfer with internet.
 * Built-in convenient RAM database could store key-value typed data, based on LittleFS(esp-idf has this function but it don't has wear-leveling, according to offical document).
-* Stable and fast Websocket implement.
+* Stable and fast Websocket implement, **transfer a great many of data with high stability**.
 * One line code to get SHA1 and SHA256 using ESP32 hardware acceleration with variant types of input data.
 * One line code to encrypt or decrypt data with AES-256-CBC.
-* Develop without connect your board to computer, only provide power supply, use built-in fully automatic OTA update.
-* Easily transfer data from web page to serial or transfer data from serial to web page.
+* Develop **without connect your board to computer**, only provide power supply, use built-in fully automatic OTA update, this allows you could continue developing when you use light laptop or your computer doesn't support more USB port at that time, directly connect your develop board into any power. This feature also fits in those ESP32 had embedded into another devices, cooperate with auto rollback feature, this allows you to do more things with less works.
+* Transfer data from web page to serial or transfer data from serial to web page without coding, default settings use the first group of serial port, you can modify it if you like to, or transfer data from(to) more serial port simultaneously.
 * More features are in development...
 
 These features especially designed for beginners, easy to use and have strong scalability. For experts, please ignore.
