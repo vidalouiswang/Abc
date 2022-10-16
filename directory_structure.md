@@ -112,6 +112,7 @@ root - |
        | - OTASettings.bat: For Windows user, to start automatic OTA update setting program
        | - OTASettings.command: For macOS user, to start automatic OTA update setting program
        | - OTASettings.js: set automatic OTA update configuration
+       | - LICENSE: open source license
        
 
 中文版:
@@ -230,3 +231,4 @@ root - |
        | - OTASettings.bat: 给Windows用的，快速启动自动OTA的设置程序
        | - OTASettings.command: 给macOS用的，快速启动自动OTA的设置程序
        | - OTASettings.js: 用于设置自动OTA的程序
+       | - LICENSE: 开源协议
