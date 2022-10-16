@@ -56,6 +56,9 @@ root - |
                     | - provider: class Provider
                                    | - provider.h
                                    | - provider.cpp
+                    | - globalmanager: class GlobalManager
+                                   | - globalmanager.h: core of whole structure, more info refer to its comments
+                                   | - globalmanager.cpp: core of whole structure, more info refer to its comments
        | - manual: 
                     | - extented_command_specification.txt: long command format
        | - partition: 
@@ -97,11 +100,6 @@ root - |
                     | - app
                                    | - app.h: app header file
                                    | - app.cpp: app source file, this file will be compiled into firmware
-                    | - main
-                                   | - main.cpp: esp32-arduino main source file, entry in it
-                    | - src
-                                   | - globalmanager.h: core of whole structure, more info refer to its comments
-                                   | - globalmanager.cpp: core of whole structure, more info refer to its comments
        | - test: 
                     | - test.cpp: unit tests
        | - tools:
@@ -174,6 +172,9 @@ root - |
                     | - provider: 类 Provider
                                    | - provider.h
                                    | - provider.cpp
+                    | - globalmanager: 类 GlobalManager
+                                   | - globalmanager.h: 整个框架的核心, 更多信息参考文件内注释
+                                   | - globalmanager.cpp: 整个框架的核心, 更多信息参考文件内注释
        | - manual: 
                     | - extented_command_specification.txt: 扩展命令格式
        | - partition: 
@@ -217,9 +218,6 @@ root - |
                                    | - app.cpp: app 源文件, 这个文件会被编译到固件
                     | - main
                                    | - main.cpp: esp32-arduino 框架主文件，入口点
-                    | - src
-                                   | - globalmanager.h: 整个框架的核心, 更多信息参考文件内注释
-                                   | - globalmanager.cpp: 整个框架的核心, 更多信息参考文件内注释
        | - test: 
                     | - test.cpp: 单元测试
        | - tools:
