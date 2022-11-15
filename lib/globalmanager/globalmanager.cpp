@@ -518,7 +518,10 @@ void GlobalManager::connectWifi()
         {
             ESP_LOGD(SYSTEM_DEBUG_HEADER, "WiFi connected");
             global->setWiFiStatus(true);
-            global->connectWebocket();
+            if (!global->remoteWebsocketConnectedTimestamp)
+            {
+                global->connectWebocket();
+            }
             WiFi.removeEvent(global->fnWiFiSTAGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP);
             if (!global->fnWiFiSTADissconnected)
             {
@@ -536,6 +539,18 @@ void GlobalManager::connectWifi()
 
     WiFi.onEvent(this->fnWiFiSTAGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP);
 };
+
+void GlobalManager::refreshData()
+{
+    // refresh data
+    this->isWifiEnabled = this->isWifiEnabled ? 0xffu : 0;
+    this->isWifiConnected = this->isWifiConnected ? 0xffu : 0;
+    this->isWiFiInfoOK = this->isWiFiInfoOK ? 0xffu : 0;
+    if (!this->ota)
+    {
+        this->ota = nullptr;
+    }
+}
 
 void GlobalManager::internalLocalMsgHandler(
     myWebSocket::WebSocketClient *client,
@@ -821,6 +836,8 @@ void GlobalManager::internalRemoteMsgHandler(
 
 #endif
         this->sendHello(false);
+
+        this->refreshData();
         break;
     case CMD_WORLD:
         this->isServerOnline = true;
@@ -1362,6 +1379,8 @@ void GlobalManager::initializeBasicInformation()
         // mark if there wifi information in flash
         this->isWiFiInfoOK =
             db("wifiSSID")->getString().length() && db("wifiPwd")->getString().length();
+
+        this->isWiFiInfoOK = this->isWiFiInfoOK ? 0xffu : 0;
 
 #ifdef ENABLE_DEALY_START_AP
         setTimeout(
@@ -1931,35 +1950,34 @@ void GlobalManager::loop()
 
     if (this->isWifiEnabled)
     {
-        // if optional wifi enabled, user should mark new firmware valid themselves
-        if (this->ota == nullptr && this->isWifiConnected && this->isServerOnline)
+        if (this->isWifiConnected)
         {
-            auto t = millis();
-            if (this->isNewFirmwareBoot && this->remoteWebsocketConnectedTimestamp)
+            // if optional wifi enabled, user should mark new firmware valid themselves
+            if (this->ota == nullptr && this->isServerOnline)
             {
-                if (t - this->remoteWebsocketConnectedTimestamp > CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT)
+                auto t = millis();
+                if (this->isNewFirmwareBoot && this->remoteWebsocketConnectedTimestamp)
                 {
-                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware is valid");
-                    this->markNewFirmwareIsValid();
+                    if (t - this->remoteWebsocketConnectedTimestamp > CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT)
+                    {
+                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware is valid");
+                        this->markNewFirmwareIsValid();
+                    }
+                }
+
+                if (this->isAPStarted &&
+                    t - this->remoteWebsocketConnectedTimestamp > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
+                {
+                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
+                    this->remoteWebsocketConnectedTimestamp = t;
+                    this->closeAP();
                 }
             }
 
-            if (this->isAPStarted &&
-                t - this->remoteWebsocketConnectedTimestamp > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
-            {
-                ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
-                this->remoteWebsocketConnectedTimestamp = t;
-                this->closeAP();
-            }
-        }
-
-        // loop remote websockets
-        if (this->isWifiConnected && this->websocketClient)
-        {
+            // loop remote websockets
             this->websocketClient->loop();
         }
-
-        if (!this->isWifiConnected)
+        else
         {
             if (this->isWiFiInfoOK)
             {

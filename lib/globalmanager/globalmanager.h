@@ -71,7 +71,6 @@ private:
      */
     Element *UniversalID = nullptr;
 
-
     /**
      * @brief administrator user name, uint8 array
      * 管理员用户名，uint8 数组
@@ -95,12 +94,6 @@ private:
      * 指示当前启动固件是否是刚才通过ota升级的
      */
     bool isNewFirmwareBoot = false;
-
-    /**
-     * @brief remote websocket client connected time, unix epoch timestamp
-     * 远程websocket客户端建立连接的时间，unix时间戳
-     */
-    uint64_t remoteWebsocketConnectedTimestamp = 0;
 
 #ifdef REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE
     /**
@@ -136,13 +129,13 @@ private:
      * @brief mark ssid and password for remote connection existed in database
      * 标识数据库中是否存在用于远程连接的wifi ssid 和密码
      */
-    bool isWiFiInfoOK = false;
+    uint8_t isWiFiInfoOK = 0;
 
     /**
      * @brief indicate that wifi connected
      * 指示wifi是否已连接
      */
-    bool isWifiConnected = false;
+    uint8_t isWifiConnected = 0;
 
     /**
      * @brief to stored used hashes for authorization
@@ -432,6 +425,12 @@ private:
 
 public:
     /**
+     * @brief remote websocket client connected time, unix epoch timestamp
+     * 远程websocket客户端建立连接的时间，unix时间戳
+     */
+    uint64_t remoteWebsocketConnectedTimestamp = 0;
+
+    /**
      * @brief this object handle ota update process
      * 这个对象用来处理ota升级过程
      */
@@ -480,8 +479,6 @@ public:
      * unix时间戳
      */
     uint64_t systemPowerOnTime = 0;
-
-
 
     /**
      * @brief incomming command from local area another device
@@ -647,7 +644,19 @@ public:
      *
      * @param isConnected connected 是否已连接
      */
-    inline void setWiFiStatus(bool isConnected = true) { this->isWifiConnected = isConnected; }
+    inline void setWiFiStatus(bool isConnected = true) { this->isWifiConnected = isConnected ? 0xffu : 0; }
+
+    /**
+     * @brief refresh data in ram
+     * ensure those variables
+     * always provide right value
+     * 
+     * 刷新内存中的数据
+     * 确保这些变量
+     * 提供正确的值
+     * 
+     */
+    void refreshData();
 
     /**
      * @brief get administrator user name
@@ -897,8 +906,8 @@ public:
     inline void delayReboot(uint32_t timeout = 3000U)
     {
         setTimeout([]()
-                         { ESP.restart(); },
-                         timeout);
+                   { ESP.restart(); },
+                   timeout);
     }
 
     /**
