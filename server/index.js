@@ -427,6 +427,9 @@
                                     device.showMsg(decodeArrayBuffer(decryptedBuffer.buffer))
                                 }
                             } else {
+                                if (getType(arr[3]) === "u8a") {
+                                    arr[3] = decodeArrayBuffer(arr[3].buffer);
+                                }
                                 device.showMsg(
                                     arr[3]
                                 );
