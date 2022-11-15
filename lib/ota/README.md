@@ -3,7 +3,7 @@ More than 10000 times OTA update had been tested, it is very stable.
 If any error detected on your ESP32 while using OTA update, please check your remote server first.
 There are full comments in header file, check ota.h for more information.
 
-* If the quality between your device and AP it connected, or between your server and your network, OTA update may stuck during it process, don't reboot your device or upload again, leave it, it will update successfully.
+* If got low connection quality between your device and AP it connected, or between your server and your network, OTA update may stuck during it process, don't reboot your device or upload again, leave it, it will update successfully.
 
 这个组件可以让系统空中升级固件。
 已经经过了至少10000次的升级测试，它很稳定。
