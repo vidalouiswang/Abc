@@ -261,13 +261,13 @@ namespace myWebSocket
          * @brief to record last connect time
          * 记录上次尝试连接的时间
          */
-        uint64_t lastConnectTime = 0;
+        uint32_t lastConnectTime = 0;
 
         /**
          * @brief a timeout when websocket disconnected from server and reconnect
          * 当websocket与服务器丢失连接之后多久再次重新尝试连接
          */
-        uint64_t connectTimeout = 5000;
+        uint32_t connectTimeout = 5000;
 
         /**
          * @brief buffer for handshake
