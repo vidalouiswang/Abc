@@ -1,4 +1,5 @@
 #include "mywebsocket.h"
+#include <esp32time.h>
 
 namespace myWebSocket
 {
@@ -670,7 +671,7 @@ namespace myWebSocket
             // disconnected
             if (this->autoReconnect && !this->isFromServer)
             {
-                auto t = millis();
+                auto t = globalTime->getTime();
                 if (t - this->lastConnectTime > this->connectTimeout)
                 {
                     ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "reconnecting...");

@@ -249,7 +249,7 @@ namespace myWebSocket
          * @brief reconnect after connection lost or not
          * 是否在断开连接后自动重连
          */
-        bool autoReconnect = true;
+        uint8_t autoReconnect = 0xffu;
 
         /**
          * @brief recv buffer has been deleted by user or not
@@ -330,7 +330,7 @@ namespace myWebSocket
          * @attention the client won't reconnect automatically if this varible set to true
          * 客户端不会自动重新连接如果这个变量被设置为true
          */
-        bool isFromServer = false;
+        uint8_t isFromServer = 0;
 
         // only CombinedServer will call this function
         // to transfer the client in
@@ -355,9 +355,9 @@ namespace myWebSocket
                 }
             }
             this->client = client;
-            this->isFromServer = true;
+            this->isFromServer = 0xffu;
             this->status = WS_CONNECTED;
-            this->autoReconnect = false;
+            this->autoReconnect = 0;
         }
 
         /**
@@ -599,7 +599,7 @@ namespace myWebSocket
          */
         inline void stop()
         {
-            this->autoReconnect = false;
+            this->autoReconnect = 0;
             this->client->stop();
         }
 
@@ -626,7 +626,7 @@ namespace myWebSocket
          */
         inline void setAutoReconnect(bool autoReconnect = true, uint64_t timeout = 5000)
         {
-            this->autoReconnect = autoReconnect;
+            this->autoReconnect = autoReconnect ? 0xffu : 0;
             this->connectTimeout = timeout;
         }
     };
