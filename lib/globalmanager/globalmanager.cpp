@@ -13,6 +13,32 @@ void otaTask(void *t)
     vTaskDelete(NULL);
 }
 
+void APScheduler(void *t)
+{
+    for (;;)
+    {
+        if (global->isAPStarted)
+        {
+            if (millis() - global->getRemoteWebsocketConnectedTime() > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
+            {
+                ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
+                global->closeAP();
+            }
+        }
+        else
+        {
+            if (
+                global->getRemoteServerOfflineDetectedTimes() > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
+            {
+                global->startAP();
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    vTaskDelete(NULL);
+}
+
 void setup()
 {
     global->beginAll();
@@ -200,13 +226,14 @@ void GlobalManager::startAP()
     if (this->password.available())
     {
         String apPassword = this->password.getHex();
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "ap password: %s", apPassword);
+        ESP_LOGD(SYSTEM_DEBUG_HEADER, "ap password: %s", apPassword.c_str());
         myNet.startAP(ssid.c_str(), this->apIP, apPassword.c_str());
     }
     else
     {
 // public ap
 #ifdef PRESET_AP_PASSWORD
+        ESP_LOGD(SYSTEM_DEBUG_HEADER, "ssid:%s, password:%s", ssid.c_str(), PRESET_AP_PASSWORD);
         myNet.startAP(ssid.c_str(), this->apIP, PRESET_AP_PASSWORD);
 #else
         myNet.startAP(ssid.c_str(), this->apIP);
@@ -288,7 +315,6 @@ void GlobalManager::makeSureNewFirmwareValid()
 void GlobalManager::markNewFirmwareIsValid()
 {
     this->isNewFirmwareBoot = false;
-
     (*(db("pendingOTA"))) = 0;
     (*(db("pendingOTABootCount"))) = 0;
     (*(db("lastOTATime"))) = globalTime->getTime();
@@ -840,7 +866,7 @@ void GlobalManager::internalRemoteMsgHandler(
         this->refreshData();
         break;
     case CMD_WORLD:
-        this->isServerOnline = true;
+        this->serverOnline(1);
         break;
     case CMD_REGISTER_OR_ROLE_AUTHORIZE:
         // server will send current timestamp after esp32 registered
@@ -1209,7 +1235,7 @@ void GlobalManager::internalUniversalWebsocketCallback(myWebSocket::WebSocketCli
     {
         ESP_LOGD(SYSTEM_DEBUG_HEADER, "%s", (client ? "Client online" : "Websocket connected"));
 
-        this->isServerOnline = true;
+        this->serverOnline(1);
 
         // record connected time
         if (!this->remoteWebsocketConnectedTimestamp)
@@ -1233,7 +1259,7 @@ void GlobalManager::internalUniversalWebsocketCallback(myWebSocket::WebSocketCli
         // websocket disconnected
         ESP_LOGD(SYSTEM_DEBUG_HEADER, "%s", (client ? "client offline" : "server offline"));
         this->remoteWebsocketConnectedTimestamp = 0;
-        this->isServerOnline = false;
+        this->serverOnline(-2);
     }
     else if (event == myWebSocket::TYPE_BIN)
     {
@@ -1387,7 +1413,7 @@ void GlobalManager::initializeBasicInformation()
             []()
             {
                 // start ap
-                global->startAP();
+                global->globalTask |= GT_START_AP;
             },
             DELAY_START_AP_TIMEOUT);
 #else
@@ -1417,6 +1443,46 @@ void GlobalManager::initializeBasicInformation()
             ESP_LOGD(SYSTEM_DEBUG_HEADER, "No WiFi information detected in database");
 #endif
         }
+
+#ifdef PROACTIVE_DETECT_REMOTE_SERVER
+        if (!this->tDetectServer)
+        {
+            this->tDetectServer = setInterval(
+                []()
+                {
+                    if (
+                        !global->isOTAUpdateRunning() &&
+                        global->wifiConnected())
+                    {
+                        uint16_t times = global->serverOfflineTimes();
+
+                        // start AP if maximum value exceeded
+                        if (times > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES &&
+                            !global->isAPStarted)
+                        {
+                            global->startAP();
+                        }
+
+#ifdef REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE
+                        if (times > REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE_TIMES)
+                        {
+                            ESP_LOGD(SYSTEM_DEBUG_HEADER, "couldn't connect to remote server, reboot");
+                            ESP.restart();
+                        }
+#endif
+
+                        // mark server is offline
+                        global->serverOnline(-2);
+
+                        // send hello to server then wait for response from server
+                        global->sendHello();
+
+                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "hello sent");
+                    }
+                },
+                DETECT_SERVER_ONLINE_INTERVAL);
+        }
+#endif
     }
 
 #ifdef BUILT_IN_FUNCTION_PROVIDER
@@ -1877,6 +1943,24 @@ void GlobalManager::initializeBasicInformation()
         PI_FREE_SPACE, (PROVIDER_ADMIN | PROVIDER_COMMON));
 
 #endif
+
+#ifdef ARDUINO_RUNNING_CORE
+    xTaskCreateUniversal(APScheduler,
+                         "APScheduler",
+                         1024,
+                         NULL,
+                         1,
+                         NULL,
+                         ARDUINO_RUNNING_CORE);
+#else
+    xTaskCreateUniversal(APScheduler,
+                         "APScheduler",
+                         1024,
+                         NULL,
+                         1,
+                         NULL,
+                         0);
+#endif
 }
 
 void GlobalManager::setSerialRecvCb()
@@ -1902,80 +1986,33 @@ void GlobalManager::loop()
 {
     app->loop();
 
-#ifdef PROACTIVE_DETECT_REMOTE_SERVER
-    if (this->isWifiEnabled && !this->ota && this->isWifiConnected)
+    if (this->globalTask)
     {
-        auto t = millis();
-
-        if (this->confirmationSentTime)
+        if (this->globalTask & GT_START_AP)
         {
-            if (t - this->confirmationSentTime > SERVER_RESPONSE_TIMEOUT)
-            {
-                if (!this->isServerOnline)
-                {
-                    this->websocketClient->status = WS_DISCONNECTED;
-
-                    if (!this->isAPStarted && ++this->remoteServerOfflineDetectedTimes > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
-                    {
-                        this->remoteServerOfflineDetectedTimes = 0;
-                        this->startAP();
-                    }
-
-#ifdef REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE
-                    if (this->remoteServerOfflineDetectedTimes > REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE_TIMES)
-                    {
-                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "couldn't connect to remote server, reboot");
-                        ESP.restart();
-                    }
-#endif
-                }
-                this->lastDetectServerOnlineTime = t;
-                this->confirmationSentTime = 0;
-            }
+            this->startAP();
         }
-        else
-        {
-            if (!this->confirmationSentTime && this->isServerOnline)
-                if (t - this->lastDetectServerOnlineTime > DETECT_SERVER_ONLINE_TIMEOUT)
-                {
-                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "hello sent");
-                    this->isServerOnline = false;
-                    this->sendHello();
-                    this->confirmationSentTime = t;
-                }
-        }
+
+        this->globalTask = 0ULL;
     }
-
-#endif
+    
 
     if (this->isWifiEnabled)
     {
         if (this->isWifiConnected)
         {
-            // if optional wifi enabled, user should mark new firmware valid themselves
-            if (this->ota == nullptr && this->isServerOnline)
-            {
-                auto t = millis();
-                if (this->isNewFirmwareBoot && this->remoteWebsocketConnectedTimestamp)
-                {
-                    if (t - this->remoteWebsocketConnectedTimestamp > CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT)
-                    {
-                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware is valid");
-                        this->markNewFirmwareIsValid();
-                    }
-                }
-
-                if (this->isAPStarted &&
-                    t - this->remoteWebsocketConnectedTimestamp > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
-                {
-                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
-                    this->remoteWebsocketConnectedTimestamp = t;
-                    this->closeAP();
-                }
-            }
-
             // loop remote websockets
             this->websocketClient->loop();
+
+            if (this->isNewFirmwareBoot)
+            {
+                auto t = millis();
+                if (t - this->remoteWebsocketConnectedTimestamp > CONFIRM_NEW_FIRMWARE_VALID_TIMEOUT)
+                {
+                    this->markNewFirmwareIsValid();
+                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "New firmware is valid");
+                }
+            }
         }
         else
         {
@@ -1989,12 +2026,12 @@ void GlobalManager::loop()
                 }
             }
         }
+    }
 
-        // loop ap server
-        if (this->isAPStarted && this->apServer)
-        {
-            this->apServer->loop();
-        }
+    // loop ap server
+    if (this->isAPStarted && this->apServer)
+    {
+        this->apServer->loop();
     }
 
     // dnsServer->processNextRequest();

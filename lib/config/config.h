@@ -244,11 +244,11 @@
 
 // how long to send a packet to detect server is online
 // 多长时间发送一个数据包检测服务器是否在线
-#define DETECT_SERVER_ONLINE_TIMEOUT 10000
+#define DETECT_SERVER_ONLINE_INTERVAL 10000
 
 // how long that server response esp32 detectation data packet
 // 服务器需要在多长时间内响应esp32发出的检测服务器是否在线的数据包
-#define SERVER_RESPONSE_TIMEOUT 3000
+// #define SERVER_RESPONSE_TIMEOUT 3000
 
 /**
  * @brief

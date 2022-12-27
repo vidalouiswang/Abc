@@ -23,7 +23,7 @@
 #include <ota.h>
 #include <provider.h>
 #include <softtimer.h>
-//#include <DNSServer.h>
+// #include <DNSServer.h>
 
 // disposable hash
 // 一次性密匙
@@ -44,7 +44,13 @@ typedef struct
     uint8_t *hash = nullptr;
 } OneTimeAuthorization;
 
+typedef enum : uint64_t
+{
+    GT_START_AP = 1
+} GlobalTask;
+
 void otaTask(void *);
+void APScheduler(void *t);
 
 typedef std::function<void(myWebSocket::WebSocketClient *client,
                            myWebSocket::WebSocketEvents event,
@@ -56,15 +62,6 @@ typedef std::function<void(myWebSocket::WebSocketClient *client,
 class GlobalManager
 {
 private:
-    /**
-     * @brief send hello request or response to server
-     * 发送打招呼请求或者回应服务器
-     *
-     * @param hello send hello or world 发送hello还是world
-     * @param client which client should use 使用哪个客户端
-     */
-    void sendHello(bool hello = true, myWebSocket::WebSocketClient *client = nullptr);
-
     /**
      * @brief esp32 id for communication, uint8 array
      * esp32 id, 用于通信，uint8数组
@@ -199,17 +196,13 @@ private:
      */
     uint8_t enableWifiPin = 0;
 
-    /**
-     * @brief the time of the detection request sent
-     * 探测请求发出的时间
-     */
-    uint64_t confirmationSentTime = 0;
+    uint32_t tDetectServer = 0;
 
     /**
      * @brief indicate remote server is online
      * 指示远程服务器是否在线
      */
-    bool isServerOnline = false;
+    uint8_t isServerOnline = 0;
 
     /**
      * @brief domain for websocket client to remote server
@@ -425,10 +418,19 @@ private:
 
 public:
     /**
-     * @brief remote websocket client connected time, unix epoch timestamp
-     * 远程websocket客户端建立连接的时间，unix时间戳
+     * @brief send hello request or response to server
+     * 发送打招呼请求或者回应服务器
+     *
+     * @param hello send hello or world 发送hello还是world
+     * @param client which client should use 使用哪个客户端
      */
-    uint64_t remoteWebsocketConnectedTimestamp = 0;
+    void sendHello(bool hello = true, myWebSocket::WebSocketClient *client = nullptr);
+
+    /**
+     * @brief remote websocket client connected time, system running time
+     * 远程websocket客户端建立连接的时间，系统运行时间
+     */
+    unsigned long remoteWebsocketConnectedTimestamp = 0;
 
     /**
      * @brief this object handle ota update process
@@ -650,11 +652,11 @@ public:
      * @brief refresh data in ram
      * ensure those variables
      * always provide right value
-     * 
+     *
      * 刷新内存中的数据
      * 确保这些变量
      * 提供正确的值
-     * 
+     *
      */
     void refreshData();
 
@@ -892,6 +894,112 @@ public:
     void syncTime(uint64_t t);
 
     /**
+     * @brief check if wifi enabled
+     * 检查是否使用wifi
+     *
+     * @return true wifi is enabled; wifi已经启用
+     * @return false wifi is disabled; wifi已禁用
+     */
+    inline bool wifiEnabled()
+    {
+        return (bool)(this->isWifiEnabled);
+    }
+
+    /**
+     * @brief show if OTA update running
+     * 显示OTA升级是否正在运行
+     *
+     * @return true OTA update is running; OTA升级正在运行
+     * @return false OTA update is not running; OTA升级未在运行
+     */
+    inline bool isOTAUpdateRunning()
+    {
+        return (bool)(this->ota);
+    }
+
+    /**
+     * @brief show connection status of wifi
+     * 显示wifi连接状态
+     *
+     * @return true wifi connected; wifi已连接
+     * @return false wifi 已断开; wifi已断开
+     */
+    inline bool wifiConnected()
+    {
+        return (bool)(this->isWifiConnected);
+    }
+
+    /**
+     * @brief set or get server offline times
+     * 获取或设置服务器被检测到掉线的次数
+     *
+     * @param times times will be set as this number if postive value provided
+     * 如果提供一个正整数，则服务器掉线次数会被设置为此值
+     *
+     * @return uint16_t the times detected server offline; 服务器被检测到掉线的次数
+     */
+    inline uint16_t serverOfflineTimes(int32_t times = -2)
+    {
+        if (times > 0)
+        {
+            this->remoteServerOfflineDetectedTimes = times;
+        }
+        return this->remoteServerOfflineDetectedTimes;
+    }
+
+    /**
+     * @brief get or set server status
+     * 获取或设置服务器状态
+     *
+     * @param serverStatus mark server status manually; 手动标记服务器状态
+     * 0 == get status; negative number == offline; positive number == online
+     *
+     * @note if positive number provided, will also reset server offline detected times value
+     * 如果提供了一个正数，会顺便重置检测到服务器掉线的次数
+     *
+     * if negative number provided, will also set offline to 1 or increase offline times if the value
+     * already had a positive number
+     * 如果提供了一个负数，会同时设置掉线次数为1，如果掉线次数已经为一个正数，会给它+1
+     *
+     * @return true server online; 服务器在线
+     * @return false server offline; 服务器掉线
+     */
+    inline bool serverOnline(uint8_t serverStatus = 0)
+    {
+        if (serverStatus)
+        {
+            if (serverStatus > 0)
+            {
+                this->isServerOnline = 0xffu;
+                this->remoteServerOfflineDetectedTimes = 0;
+            }
+            else
+            {
+                this->isServerOnline = 0;
+                if (this->remoteServerOfflineDetectedTimes > 0)
+                {
+                    this->remoteServerOfflineDetectedTimes++;
+                }
+                else
+                {
+                    this->remoteServerOfflineDetectedTimes = 1;
+                }
+            }
+        }
+        return this->isServerOnline;
+    }
+
+    inline uint64_t getRemoteWebsocketConnectedTime()
+    {
+        return this->remoteWebsocketConnectedTimestamp;
+    }
+
+    inline uint16_t getRemoteServerOfflineDetectedTimes()
+    {
+        return this->remoteServerOfflineDetectedTimes;
+    }
+
+    /**
      * @brief remove wifi ssid and password from database
      * 从数据库清除wifi连接信息
      */
@@ -997,6 +1105,8 @@ public:
             return enable;
         }
     }
+
+    uint64_t globalTask = 0ULL;
 };
 
 /**
