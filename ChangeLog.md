@@ -1,6 +1,8 @@
 2023/02/05
+
 English:
-1. Add auto sync function, which means you could modify source file in /app/appName, it will be cpoied to /src/app automatically. 
+
+1. Add auto sync function, which means you could modify source file in /app/appName, it will be copied to /src/app automatically. 
 2. Fix bug of web client and add cr, lf, crlf or none to serial mode. The cr, lf, crlf will be appended to content automatically.
 3. Add timeout check process to auto OTA update, the auto OTA update process will be restart when error detected.
 4. Fix bug of tools "replaceHtml.js".
@@ -14,6 +16,7 @@ English:
 Conclusion: Currently the whold system running with no error, it is stable.
 
 中文:
+
 1. 增加了源代码自动同步辅助功能，在/app/app名称下修改源代码会自动同步到/src/app下。
 2. 修复了前端的bug，给serial数据转发增加了在末尾自动添加特殊字符的功能，可以选择cr、lf、crlf或无特殊字符。
 3. 给自动OTA升级功能增加了超时检测功能，自动OTA在发生错误超时 时会自动重新对设备发起升级请求。
