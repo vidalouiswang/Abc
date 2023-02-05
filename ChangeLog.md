@@ -13,6 +13,7 @@ English:
 9. The time of firmware compiled will be copied to /lib/globalmanager/globalmanager.h automatically, it will shows in web client to let user can get time info.
 10. Fix bug that AP won't close automatically.
 11. Fix bug that transfer data from hardware serial to web client. It will use stack to hold data when size of data less than 128 bytes, or it will use heap to hold data. The maximum size of data defined as 81916 bytes, which is large enough.
+
 Conclusion: Currently the whold system running with no error, it is stable.
 
 中文:
@@ -28,4 +29,5 @@ Conclusion: Currently the whold system running with no error, it is stable.
 9. 固件的编译时间会被自动填充到头文件/lib/globalmanager/globalmanager.h中，这个时间可以在前端看到，方便确定固件的具体编译时间。
 10. 修复了AP不会自动关闭的bug。
 11. 修复了串口数据转发的bug，当转发的数据大小小于128字节时，将使用栈空间存放数据，否则将使用堆空间存储数据，最大数据量被定义为81916字节，这足够大了。
+
 结论: 当前系统运行无任何错误，非常稳定。
