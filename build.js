@@ -4,6 +4,8 @@ let child_process = require("child_process"), fs = require("fs");
 
     let config = {};
 
+    let autoSync = false;
+
     let language = {
         en: {
             input: "Input: ",
@@ -13,7 +15,7 @@ let child_process = require("child_process"), fs = require("fs");
             selectBuildApp: "Select one app to build:\n",
             selectCopyApp: "Select one app to copy:\n",
             copied: "copied\n",
-            opType: "1: Build single app\n2: Build all\n3: Copy only\n4: exit\n:"
+            opType: "1: Build single app\n2: Build all\n3: Copy only\n4: Enable auto sync\n5: exit\n:"
         },
         cn: {
             input: "请输入: ",
@@ -23,7 +25,7 @@ let child_process = require("child_process"), fs = require("fs");
             selectBuildApp: "构建哪一个固件:\n",
             selectCopyApp: "拷贝哪个固件:\n",
             copied: "已拷贝\n",
-            opType: "1: 单独构建\n2: 全部构建\n3: 仅拷贝\n4: 退出\n:"
+            opType: "1: 单独构建\n2: 全部构建\n3: 仅拷贝\n4: 启用自动同步\n5: 退出\n:"
         }
     };
 
@@ -134,6 +136,23 @@ let child_process = require("child_process"), fs = require("fs");
             let q = refresh();
             rl.question(language[config.language].selectCopyApp + q, copyOnly);
         } else if (data == 4) {
+            if (!autoSync) {
+                autoSync = true;
+                fs.watch("./", {
+                    recursive: true
+                }, function (e, fileName) {
+                    if (fileName.startsWith("app/")) {
+                        let m = /app\/(?<appName>[^\/]+)\/.+/i.exec(fileName);
+                        if (m) {
+                            m = m.groups.appName;
+                            fs.cpSync(appsRoot + m + "/app/", "./src/app/", { recursive: true });
+                        }
+                    }
+                });
+            }
+
+            query();
+        } else if (data == 5) {
             process.exit();
         } else {
             rl.question(language[config.language].errorInput +

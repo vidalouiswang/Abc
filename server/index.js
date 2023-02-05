@@ -427,12 +427,16 @@
                                     device.showMsg(decodeArrayBuffer(decryptedBuffer.buffer))
                                 }
                             } else {
-                                if (getType(arr[3]) === "u8a") {
-                                    arr[3] = decodeArrayBuffer(arr[3].buffer);
-                                }
-                                device.showMsg(
-                                    arr[3]
-                                );
+                                // if (getType(arr[3]) === "u8a") {
+                                //     let tArr = decodeArrayBuffer(arr[3].buffer);
+                                //     if(!tArr.length){
+                                //         arr[3] = arr[3].toHex();
+                                //     }
+                                // }
+                                // device.showMsg(
+                                //     arr[3]
+                                // );
+                                device.showMsg(arr[3])
                             }
 
                         break;

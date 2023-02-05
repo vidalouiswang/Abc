@@ -6,6 +6,10 @@ let { createArrayBuffer, decodeArrayBuffer } = require("./ab");
 
 let config = null;
 
+let timeout = 5000;
+let timerCheck = 0;
+let running = false;
+
 if (fs.existsSync("./autoOTAConfig.json")) {
     config = JSON.parse(fs.readFileSync("./autoOTAConfig.json").toString());
 } else {
@@ -95,6 +99,37 @@ target.fileName = arr[0].fileName;
 
 console.log("Pending OTA firmware: ", target.fileName);
 
+function sendOTARequest(client) {
+    let userName = config.adminUserName;
+    let password = config.adminPassword;
+
+    userName = getHash(userName);
+    password = getHash(password);
+
+    let t = new Date().getTime();
+
+    let hash = new Uint8Array(getHash(userName + password + t, !0));
+
+    let firmware = new Uint8Array(fs.readFileSync(rootPath + "firmware/" + target.fileName));
+
+    let firmwareHash = new Uint8Array(getHash(firmware, !0));
+
+    let ab = createArrayBuffer(
+        [
+            0xAB,
+            id,
+            userName,
+            firmware,
+            t,
+            hash,
+            target.blockSize,
+            firmwareHash
+        ]
+    );
+
+    client.send(ab);
+};
+
 function pushFirmware() {
     if (!config.path.startsWith("/"))
         config.path = "/" + config.path;
@@ -104,34 +139,15 @@ function pushFirmware() {
         client.binaryType = "arraybuffer";
         console.log("Connected, uploading firmware...");
 
-        let userName = config.adminUserName;
-        let password = config.adminPassword;
+        sendOTARequest(client);
 
-        userName = getHash(userName);
-        password = getHash(password);
-
-        let t = new Date().getTime();
-
-        let hash = new Uint8Array(getHash(userName + password + t, !0));
-
-        let firmware = new Uint8Array(fs.readFileSync(rootPath + "firmware/" + target.fileName));
-
-        let firmwareHash = new Uint8Array(getHash(firmware, !0));
-
-        let ab = createArrayBuffer(
-            [
-                0xAB,
-                id,
-                userName,
-                firmware,
-                t,
-                hash,
-                target.blockSize,
-                firmwareHash
-            ]
-        );
-
-        this.send(ab);
+        timerCheck = setInterval(() => {
+            if (!running) {
+                sendOTARequest(client);
+            } else {
+                clearInterval(timerCheck);
+            }
+        }, timeout);
     });
     client.on("message", function (msg) {
         let arr = decodeArrayBuffer(msg);
@@ -144,6 +160,7 @@ function pushFirmware() {
                 break;
             case 0xae:
                 console.log("progress: " + arr[2]);
+                running = true;
                 break;
             case 0xfb:
                 if (arr[3] == 100) {

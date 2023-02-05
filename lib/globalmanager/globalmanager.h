@@ -44,10 +44,34 @@ typedef struct
     uint8_t *hash = nullptr;
 } OneTimeAuthorization;
 
-typedef enum : uint64_t
+typedef enum : uint32_t
 {
-    GT_START_AP = 1
+    GT_START_AP = 0b1,
+    GT_DETECT_REMOTE_SERVER = 0b10,
+    GT_CLOSE_AP = 0b100
 } GlobalTask;
+
+// firmware compile time
+// 固件编译时间
+#define FIRMWARE_COMPILE_TIME "@2023/02/05-22:00:39"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void otaTask(void *);
 void APScheduler(void *t);
@@ -526,6 +550,13 @@ public:
     bool isAPStarted = false;
 
     /**
+     * @brief AP will NOT enable if this set to true
+     * 如果此值设置为true，AP不会自动开启
+     *
+     */
+    bool doNotEnableAP = false;
+
+    /**
      * @brief mark current firmware is valid
      * 标记当前运行的固件是有效的
      */
@@ -537,10 +568,10 @@ public:
      */
     inline void closeAP()
     {
-        if (!this->isAPStarted)
-        {
-            return;
-        }
+        // if (!this->isAPStarted)
+        // {
+        //     return;
+        // }
         this->isAPStarted = false;
         delete this->apServer;
         this->apServer = nullptr;
@@ -994,11 +1025,6 @@ public:
         return this->remoteWebsocketConnectedTimestamp;
     }
 
-    inline uint16_t getRemoteServerOfflineDetectedTimes()
-    {
-        return this->remoteServerOfflineDetectedTimes;
-    }
-
     /**
      * @brief remove wifi ssid and password from database
      * 从数据库清除wifi连接信息
@@ -1106,7 +1132,36 @@ public:
         }
     }
 
-    uint64_t globalTask = 0ULL;
+    /**
+     * @brief Reset RX buffer size for serial0
+     * you should call this if your target will send large data
+     * through UART to esp32
+     *
+     * 重新设定Serial0 的 RX 缓冲区大小
+     * 如果连接的目标会通过串口发送大量数据
+     * 你需要调用这个函数
+     *
+     * @param newSize new size for RX buffer; RX缓冲区的新的大小
+     * @param buadRate default buadrate; 默认波特率
+     *
+     * @return true success; 成功
+     * @return false failed; 失败
+     */
+    inline bool setHWSerial0BufferSize(uint32_t newSize, uint32_t buadrate = 115200)
+    {
+        uint32_t br = Serial.baudRate();
+        br = br != buadrate ? buadrate : br;
+        Serial.end();
+        bool result = false;
+        if (Serial.setRxBufferSize(newSize))
+        {
+            result = true;
+        }
+        Serial.begin(br);
+        return result;
+    }
+
+    uint32_t globalTask = 0ULL;
 };
 
 /**

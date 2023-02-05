@@ -12,8 +12,9 @@
     }
 
     class Provider {
-        constructor(boardID, providerID, name, mask, isAdmin, customID) {
+        constructor(boardID, providerID, name, mask, isAdmin, customID, parent) {
             this.boardID = boardID;
+            this.parent = parent;
             this.providerID = providerID;
             if (customID !== null) {
                 this.customID = customID;
@@ -201,7 +202,15 @@
 
                     arrArguments.push(u8a);
                 } else {
-                    arrArguments.push(i.value);
+                    let t = i.value;
+                    if (this.parent.serialTail === 1) {
+                        t += "\r";
+                    } else if (this.parent.serialTail === 2) {
+                        t += "\n";
+                    } else if (this.parent.serialTail === 3) {
+                        t += "\r\n";
+                    }
+                    arrArguments.push(t);
                 }
 
             }
@@ -293,6 +302,7 @@
             this.serialDataContainer = txtSerial;
             this.serialMode = 0;
             this.msgEncoding = 0;
+            this.serialTail = 0;
 
             div.appendChild(createButton("id: " + this.info.id));
             div.appendChild(createButton("版本: " + this.info.firmwareVersion));
@@ -318,6 +328,24 @@
                 btnMsgEncoding.innerText = this.msgEncoding ? ("utf8") : ("hex");
             });
 
+            let btnAddCRLF = createButton("\\r", e => {
+                if (this.serialTail === 0) {
+                    this.serialTail = 1;
+                    btnAddCRLF.innerText = "\\n";
+                } else if (this.serialTail === 1) {
+                    this.serialTail = 2;
+                    btnAddCRLF.innerText = "\\r\\n";
+                } else if (this.serialTail === 2) {
+                    this.serialTail = 3;
+                    btnAddCRLF.innerText = "none";
+                } else {
+                    this.serialTail = 0;
+                    btnAddCRLF.innerText = "\\r";
+                }
+
+
+            });
+
             let btnClear = createButton("clear", e => {
                 txtSerial.value = "";
             });
@@ -326,6 +354,7 @@
             divSerial.appendChild(txtSerial);
             divSerial.appendChild(btnClear);
             divSerial.appendChild(btnMsgEncoding);
+            divSerial.appendChild(btnAddCRLF);
             div.appendChild(divSerial);
 
             this.moreContainer = div;
@@ -380,7 +409,8 @@
                     provider.name,
                     provider.mask,
                     this.isAdmin(),
-                    provider.customID !== undefined ? provider.customID : null // handle 0 custom id
+                    provider.customID !== undefined ? provider.customID : null, // handle 0 custom id
+                    this
                 );
 
 
@@ -488,9 +518,8 @@
                     } else {
                         msg = msg.toHex();
                     }
-
                 } else {
-                    msg = msg[0];
+                    msg = arr[0];
                 }
             }
 

@@ -27,10 +27,15 @@ void APScheduler(void *t)
         }
         else
         {
-            if (
-                global->getRemoteServerOfflineDetectedTimes() > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
+            if (!global->doNotEnableAP &&
+                global->serverOfflineTimes() > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
             {
                 global->startAP();
+            }
+
+            if (WiFi.getMode() > 1)
+            {
+                global->globalTask |= GT_CLOSE_AP;
             }
         }
 
@@ -52,6 +57,10 @@ void loop()
 void GlobalManager::beginAll(WebSocketCallback apCB,
                              WebSocketCallback wifiCB)
 {
+
+#ifdef APP_REQUIRE_PREPARE_SETUP
+    app->preSetup();
+#endif
 
 #ifdef APP_HAS_EXTRA_LOCAL_WEBSOCKET_CALLBACK
     // extra local(AP) websocket callback
@@ -207,7 +216,7 @@ void GlobalManager::buildUsersBuffer()
 
 void GlobalManager::startAP()
 {
-    if (this->isAPStarted)
+    if (this->doNotEnableAP || this->isAPStarted)
     {
         return;
     }
@@ -528,9 +537,19 @@ void GlobalManager::connectWifi()
 #endif
     }
 
-    if (WiFi.getMode() != WIFI_MODE_APSTA)
+    if (this->doNotEnableAP)
     {
-        WiFi.mode(WIFI_MODE_APSTA);
+        if (WiFi.getMode() != WIFI_MODE_STA)
+        {
+            WiFi.mode(WIFI_MODE_STA);
+        }
+    }
+    else
+    {
+        if (WiFi.getMode() != WIFI_MODE_APSTA)
+        {
+            WiFi.mode(WIFI_MODE_APSTA);
+        }
     }
 
     // connect wifi
@@ -1408,6 +1427,10 @@ void GlobalManager::initializeBasicInformation()
 
         this->isWiFiInfoOK = this->isWiFiInfoOK ? 0xffu : 0;
 
+#ifdef APP_REQUIRE_START_AP_ON_BOOT
+        // start ap
+        this->startAP();
+#else
 #ifdef ENABLE_DEALY_START_AP
         setTimeout(
             []()
@@ -1420,7 +1443,7 @@ void GlobalManager::initializeBasicInformation()
         // start ap
         this->startAP();
 #endif
-
+#endif
         if (this->isWiFiInfoOK && this->userName.available() && this->password.available())
         {
             // connect to wifi if wifi ssid and password detected in database
@@ -1450,35 +1473,7 @@ void GlobalManager::initializeBasicInformation()
             this->tDetectServer = setInterval(
                 []()
                 {
-                    if (
-                        !global->isOTAUpdateRunning() &&
-                        global->wifiConnected())
-                    {
-                        uint16_t times = global->serverOfflineTimes();
-
-                        // start AP if maximum value exceeded
-                        if (times > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES &&
-                            !global->isAPStarted)
-                        {
-                            global->startAP();
-                        }
-
-#ifdef REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE
-                        if (times > REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE_TIMES)
-                        {
-                            ESP_LOGD(SYSTEM_DEBUG_HEADER, "couldn't connect to remote server, reboot");
-                            ESP.restart();
-                        }
-#endif
-
-                        // mark server is offline
-                        global->serverOnline(-2);
-
-                        // send hello to server then wait for response from server
-                        global->sendHello();
-
-                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "hello sent");
-                    }
+                    global->globalTask |= GT_DETECT_REMOTE_SERVER;
                 },
                 DETECT_SERVER_ONLINE_INTERVAL);
         }
@@ -1970,13 +1965,39 @@ void GlobalManager::setSerialRecvCb()
         {
             if (this->isSerialDataLoopBack && this->isWifiEnabled && this->isWifiConnected)
             {
-                char buf[128] = {0};
-                size_t size = 0;
+                size_t size = Serial.available();
 
-                while (Serial.available() > 0)
+                if (!size)
                 {
+                    Serial.println("empty data");
+                    return;
+                }
+
+                if (size <= 126)
+                {
+                    char buf[128] = {0};
+
                     size = Serial.readBytes(buf, Serial.available());
                     this->webSerial(new Element(true, (uint8_t *)buf, size));
+                }
+                else
+                {
+                    if (size >= 81916)
+                    {
+                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "long length");
+                        return;
+                    }
+                    size += 4;
+                    char *buf = new (std::nothrow) char[size];
+                    if (!buf)
+                    {
+                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "memory allocate failed");
+                        return;
+                    }
+                    bzero(buf, size);
+                    size = Serial.readBytes(buf, size - 4);
+                    this->webSerial(new Element(true, (uint8_t *)buf, size));
+                    delete buf;
                 }
             }
         });
@@ -1993,9 +2014,46 @@ void GlobalManager::loop()
             this->startAP();
         }
 
+        if (this->globalTask & GT_DETECT_REMOTE_SERVER)
+        {
+            if (
+                !this->isOTAUpdateRunning() &&
+                this->wifiConnected())
+            {
+                uint16_t times = this->serverOfflineTimes();
+
+                // start AP if maximum value exceeded
+                if (times > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES &&
+                    !this->isAPStarted)
+                {
+                    // start ap
+                    this->globalTask |= GT_START_AP;
+                }
+
+#ifdef REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE
+                if (times > REBOOT_IF_PROACTIVE_DETECT_REMOTE_SERVER_OFFLINE_TIMES)
+                {
+                    ESP_LOGD(SYSTEM_DEBUG_HEADER, "couldn't connect to remote server, reboot");
+                    ESP.restart();
+                }
+#endif
+
+                // mark server is offline
+                this->serverOnline(-2);
+
+                // send hello to server then wait for response from server
+                this->sendHello();
+
+                ESP_LOGD(SYSTEM_DEBUG_HEADER, "hello sent");
+            }
+        }
+
+        if (this->globalTask & GT_CLOSE_AP)
+        {
+            this->closeAP();
+        }
         this->globalTask = 0ULL;
     }
-    
 
     if (this->isWifiEnabled)
     {
@@ -2086,17 +2144,17 @@ void GlobalManager::getFindDeviceBuffer(
         extraInfo |= (uint8_t)(32);
     }
 
-    response->push_back(new Element(CMD_FIND_DEVICE_RESPONSE));                           // response to find device 0xaf
-    response->push_back(new Element(userID));                                             // web client id
-    response->push_back(new Element((uint16_t)(ESP.getCpuFreqMHz())));                    // cpu freq
-    response->push_back(new Element(extraInfo));                                          // extra info
-    response->push_back(new Element(globalTime->getTime()));                              // current timestamp
-    response->push_back(new Element((uint32_t)(ESP.getFreeHeap())));                      // free heap
-    response->push_back(new Element(this->nickname.getString().c_str()));                 // nickname of this board
-    response->push_back(new Element(this->UniversalID->getHex().c_str()));                // id of this board
-    response->push_back(new Element(SYSTEM_VERSION));                                     // current structure version
-    response->push_back(new Element(APP_VERSION));                                        // app version
-    response->push_back(new Element(this->bufferProviders, this->bufferProvidersLength)); // providers buffer
+    response->push_back(new Element(CMD_FIND_DEVICE_RESPONSE));                            // response to find device 0xaf
+    response->push_back(new Element(userID));                                              // web client id
+    response->push_back(new Element((uint16_t)(ESP.getCpuFreqMHz())));                     // cpu freq
+    response->push_back(new Element(extraInfo));                                           // extra info
+    response->push_back(new Element(globalTime->getTime()));                               // current timestamp
+    response->push_back(new Element((uint32_t)(ESP.getFreeHeap())));                       // free heap
+    response->push_back(new Element(this->nickname.getString().c_str()));                  // nickname of this board
+    response->push_back(new Element(this->UniversalID->getHex().c_str()));                 // id of this board
+    response->push_back(new Element(SYSTEM_VERSION));                                      // current structure version
+    response->push_back(new Element(String(APP_VERSION) + String(FIRMWARE_COMPILE_TIME))); // app version & compile time
+    response->push_back(new Element(this->bufferProviders, this->bufferProvidersLength));  // providers buffer
 }
 
 void GlobalManager::resetWifiInfo()

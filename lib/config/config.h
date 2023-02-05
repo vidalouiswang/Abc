@@ -18,7 +18,7 @@
 
 // version of system
 // 主框架版本号
-#define SYSTEM_VERSION 42
+#define SYSTEM_VERSION "42.1.0"
 
 // debug system switch
 // 主框架调试开关
