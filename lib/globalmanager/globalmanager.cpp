@@ -220,6 +220,7 @@ void GlobalManager::startAP()
     {
         return;
     }
+    delay(1);
 
     // read custom prefix for local access point
     String prefix = db("apPrefix")->getString();

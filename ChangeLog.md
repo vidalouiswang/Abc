@@ -1,3 +1,13 @@
+2023/02/07
+
+English:
+
+1. Fix bug that AP won't start on new device after firmware uploaded. 
+
+中文: 
+
+1. 修复了bug: 新设备在烧录固件后AP不会开启。
+
 2023/02/05
 
 English:
