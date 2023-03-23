@@ -1079,10 +1079,6 @@
 
 		print("decode arraybuffer from client: ", this.id);
 
-		if(data.byteLength > 100){
-			console.log(666);
-		}
-
 		//decode original data to an array
 		//解码原始数据到一个数组
 		let arr = decodeArrayBuffer(data);

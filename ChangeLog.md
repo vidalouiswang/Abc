@@ -3,11 +3,13 @@
 English:
 
 1. Add all types supported to class Element, u8, i8, u16, i16, u32, i32, u64, i64, float, double, string, buffer. Some name of enum were changed. Reference to arraybuffer.hpp.
+2. Add convenient method to support Android WebView to get custom ID, Android Studio example project will release later.
 
 
 中文:
 
 1. 给类 Element 添加了所有数据类型的支持，单字节、双字节、四字节的有符号和无符号整数，单精度浮点、双精度浮点，字符串和二进制数组。 修改了某些枚举的名称。
+2. 添加了方便的方法来给安卓WebView快速获取自定义ID，Android Studio 示例工程后续会上传。
 
 2023/02/07
 
