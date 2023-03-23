@@ -12,11 +12,12 @@
  * @copyright Copyright (c) 2022
  * 
  */
-#pragma once
+#ifndef PROVIDER_H_
+#define PROVIDER_H_
 
 #include <Arduino.h>
 #include <functional>
-#include <arraybuffer.h>
+#include <arraybuffer.hpp>
 
 typedef Elements *ProviderArguments;
 
@@ -128,3 +129,5 @@ public:
      */
     uint8_t *getBuffer(uint64_t *outLen);
 };
+
+#endif

@@ -65,7 +65,7 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
                     return;
                 }
 
-                if (output->at(OFFSET_COMMAND)->getType() != UINT8 ||
+                if (output->at(OFFSET_COMMAND)->getType() != ETYPE_UINT8 ||
                     output->at(OFFSET_COMMAND)->getUint8() != CMD_OTA_BLOCK)
                 {
                     this->clearBuffer(output);
@@ -81,7 +81,7 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
                 }
 
                 if (
-                    output->at(OFFSET_OTA_DATA)->getType() != U8A)
+                    output->at(OFFSET_OTA_DATA)->getType() != ETYPE_BUFFER)
                 {
                     ESP_LOGD(OTA_DEBUG_HEADER, "invalid type of data or hash");
                     this->clearBuffer(output);
@@ -89,7 +89,7 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
                     return;
                 }
 
-                if (output->at(OFFSET_OTA_BLOCK_INDEX)->getType(true) != NUMBER)
+                if (output->at(OFFSET_OTA_BLOCK_INDEX)->getType(true) != ETYPE_NUMBER)
                 {
                     ESP_LOGD(OTA_DEBUG_HEADER, "invalid type of index");
                     this->clearBuffer(output);

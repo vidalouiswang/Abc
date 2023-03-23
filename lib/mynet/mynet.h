@@ -11,7 +11,8 @@
  *
  */
 
-#pragma once
+#ifndef MYNET_H_
+#define MYNET_H_
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -37,3 +38,5 @@ public:
     bool startAP(const char *ssid, IPAddress *apIP, const char *pwd = nullptr);
 };
 extern MyNet myNet;
+
+#endif

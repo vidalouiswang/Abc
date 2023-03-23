@@ -492,6 +492,10 @@
 
         w.userName = userName = getHash(userName);
 
+        if(window.android){
+            window.android.updateUserInfo(userName + ","+password);
+        }
+
         w.id = getHash(userName + password + "admin");
 
         let t = new Date().getTime();
@@ -500,11 +504,11 @@
         let command = BigInt("0xC0000000000000AF"); // 0x80 | 0x40, fixed 80, 0x40 == 0b01000000, message should be confirmed
 
         sendArrayBuffer([
-            command,
-            w.id,
-            w.userName,
-            t,
-            hash
+            command, //uint64
+            w.id, //string
+            w.userName, //string
+            t, //uint64
+            hash //uint8 array
         ]);
     };
 

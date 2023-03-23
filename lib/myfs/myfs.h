@@ -14,7 +14,8 @@
  * @copyright Copyright (c) 2022
  * 
  */
-#pragma once
+#ifndef MYFS_H_
+#define MYFS_H_
 
 #include <Arduino.h>
 #include "FS.h"
@@ -54,3 +55,5 @@ public:
     static size_t getFreeSpace();
     static size_t getUsedSpace();
 };
+
+#endif

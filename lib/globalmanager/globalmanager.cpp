@@ -176,7 +176,7 @@ void GlobalManager::buildProvidersBuffer(bool buildAll)
         }
     }
 
-    ESP_LOGD(SYSTEM_DEBUG_HEADER, "Providers buffer container has been built, length: %d", providerBufferContainer.size());
+    ESP_LOGD(SYSTEM_DEBUG_HEADER, "Providers buffer container had been built, length: %d", providerBufferContainer.size());
 
     if (providerBufferContainer.size())
     {
@@ -189,14 +189,14 @@ void GlobalManager::buildProvidersBuffer(bool buildAll)
 
         this->bufferProviders = ArrayBuffer::createArrayBuffer(&providerBufferContainer, &(this->bufferProvidersLength));
 
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Providers buffer has been built");
+        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Providers buffer had been built");
 
         for (uint32_t i = 0; i < providerBufferContainer.size(); ++i)
         {
             delete providerBufferContainer.at(i);
         }
 
-        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Providers buffer container cache has been removed");
+        ESP_LOGD(SYSTEM_DEBUG_HEADER, "Providers buffer container cache had been removed");
     }
     else
     {
@@ -227,8 +227,8 @@ void GlobalManager::startAP()
 
     // use nickname as ap ssid name if set, or use prefix 8 bytes as ssid
     String ssid = (prefix.length() ? prefix : (String(AP_PREFIX) + "_")) +
-                  (this->nickname.getType() == STRING ? this->nickname.getString().c_str()
-                                                      : this->nickname.getHex().substring(0, 8));
+                  (this->nickname.getType() == ETYPE_STRING ? this->nickname.getString().c_str()
+                                                            : this->nickname.getHex().substring(0, 8));
 
     ESP_LOGD(SYSTEM_DEBUG_HEADER, "starting AP");
     // if current esp32 has been setup once
@@ -349,7 +349,7 @@ void GlobalManager::executeCommand(
     bool isAdmin = false;
 
     if ((output->size() == 7 || output->size() == 6) &&
-        output->at(4)->getType() == U8A &&
+        output->at(4)->getType() == ETYPE_BUFFER &&
         output->at(4)->getU8aLen() == SHA_LENGTH &&
         this->authorize(output->at(4), output->at(3), &isAdmin))
     {
@@ -372,7 +372,7 @@ void GlobalManager::executeCommand(
 
         for (uint32_t i = 0; i < this->providers->size(); ++i)
         {
-            uint64_t targetID = output->at(5)->getType() == UINT64
+            uint64_t targetID = output->at(5)->getType() == ETYPE_UINT64
                                     ? this->providers->at(i)->customID
                                     : this->providers->at(i)->id;
             if (targetID == idFromRemote)
@@ -392,7 +392,7 @@ void GlobalManager::executeCommand(
 
         if (output->size() == 7)
         {
-            if (output->at(6)->getType() != U8A)
+            if (output->at(6)->getType() != ETYPE_BUFFER)
             {
                 ESP_LOGD(SYSTEM_DEBUG_HEADER, "data index 6 has invalid type");
                 return;
@@ -464,7 +464,7 @@ void GlobalManager::executeCommand(
                 }
                 else
                 {
-                    response->at(3)->setString("error when execute function");
+                    (*(response->at(3))) = "error when execute function";
                 }
             }
         }
@@ -610,7 +610,7 @@ void GlobalManager::internalLocalMsgHandler(
         return;
 
     // check command type
-    if (output->at(0)->getType() != UINT8)
+    if (output->at(0)->getType() != ETYPE_UINT8)
         return;
 
     // get length of data vector
@@ -645,35 +645,35 @@ void GlobalManager::internalLocalMsgHandler(
             // update information to database
 
             // nickname
-            if (output->at(1)->getType() == STRING)
+            if (output->at(1)->getType() == ETYPE_STRING)
                 (*(db)("nickname")) = output->at(1)->getString();
             // db->update("nickname", output->at(1)->getString());
 
             // wifi information
-            if (output->at(2)->getType() == STRING && output->at(3)->getType() == STRING)
+            if (output->at(2)->getType() == ETYPE_STRING && output->at(3)->getType() == ETYPE_STRING)
             {
                 (*(db)("wifiSSID")) = output->at(2)->getString();
                 (*(db)("wifiPwd")) = output->at(3)->getString();
             }
 
             // for remote management (admin)
-            if (output->at(4)->getType() == U8A && output->at(5)->getType() == U8A)
+            if (output->at(4)->getType() == ETYPE_BUFFER && output->at(5)->getType() == ETYPE_BUFFER)
             {
                 (*(db)("userName"))(output->at(4)->getUint8Array(), output->at(4)->getU8aLen());
                 (*(db)("password"))(output->at(5)->getUint8Array(), output->at(5)->getU8aLen());
             }
 
             // websocket information(remote)
-            if (output->at(6)->getType() == STRING)
+            if (output->at(6)->getType() == ETYPE_STRING)
                 (*(db)("websocketDomain")) = output->at(6)->getString();
 
-            if (output->at(7)->getType(true) == NUMBER)
+            if (output->at(7)->getType(true) == ETYPE_NUMBER)
                 (*(db)("websocketPort")) = (uint16_t)(output->at(7)->getNumber());
 
-            if (output->at(8)->getType() == STRING)
+            if (output->at(8)->getType() == ETYPE_STRING)
                 (*(db)("websocketPath")) = output->at(8)->getString();
 
-            if (output->at(9)->getType() == STRING)
+            if (output->at(9)->getType() == ETYPE_STRING)
                 (*db("token")) = output->at(9)->getString();
 
             // write to flash
@@ -841,7 +841,7 @@ void GlobalManager::internalRemoteMsgHandler(
 
     ElementType eType = output->at(0)->getType();
 
-    if (eType == UINT64)
+    if (eType == ETYPE_UINT64)
     {
         extented = command & 0xffffffffffffff00ULL;
 
@@ -858,7 +858,7 @@ void GlobalManager::internalRemoteMsgHandler(
     }
     else
     {
-        if (eType != UINT8)
+        if (eType != ETYPE_UINT8)
         {
             return;
         }
@@ -895,7 +895,7 @@ void GlobalManager::internalRemoteMsgHandler(
         {
             if (output->size() > 1)
             {
-                if (output->size() == 2 && output->at(1)->getType() == UINT64)
+                if (output->size() == 2 && output->at(1)->getType() == ETYPE_UINT64)
                 {
                     // sync time
                     this->syncTime(output->at(1)->getUint64());
@@ -908,8 +908,8 @@ void GlobalManager::internalRemoteMsgHandler(
                 }
                 else if (output->size() == 3)
                 {
-                    if (output->at(1)->getType() == UINT8 &&
-                        output->at(2)->getType() == UINT8)
+                    if (output->at(1)->getType() == ETYPE_UINT8 &&
+                        output->at(2)->getType() == ETYPE_UINT8)
                     {
                         String token = db("token")->getString();
                         if (token.length())
@@ -951,8 +951,8 @@ void GlobalManager::internalRemoteMsgHandler(
         {
             // check data
             if (output->size() == 6 &&
-                output->at(OFFSET_START_OTA_ADMIN)->getType() == STRING &&
-                output->at(OFFSET_START_OTA_HASH)->getType() == U8A)
+                output->at(OFFSET_START_OTA_ADMIN)->getType() == ETYPE_STRING &&
+                output->at(OFFSET_START_OTA_HASH)->getType() == ETYPE_BUFFER)
             {
                 // authorize user
                 ESP_LOGD(SYSTEM_DEBUG_HEADER, "user authrozied");
@@ -1034,7 +1034,7 @@ void GlobalManager::internalRemoteMsgHandler(
         {
             bool isAdmin = false;
             if (lengthOfOutput == FIND_DEVICE_VECTOR_LENGTH &&
-                output->at(4)->getType() == U8A &&
+                output->at(4)->getType() == ETYPE_BUFFER &&
                 this->authorize(output->at(4), output->at(3), &isAdmin))
             {
                 // role authorized
@@ -1047,7 +1047,7 @@ void GlobalManager::internalRemoteMsgHandler(
                     uint64_t originalCmd = response->at(0)->getUint64();
                     originalCmd |= msgID; // attach msg id
                     originalCmd |= CMD_CONFIRM;
-                    response->at(0)->setNumber(originalCmd);
+                    response->at(0)->setNumber(originalCmd, ETYPE_UINT64);
                 }
             }
 
@@ -1063,7 +1063,7 @@ void GlobalManager::internalRemoteMsgHandler(
                 uint64_t originalCmd = response->at(0)->getUint64();
                 originalCmd |= msgID; // attach msg id
                 originalCmd |= CMD_CONFIRM;
-                response->at(0)->setNumber(originalCmd);
+                response->at(0)->setNumber(originalCmd, ETYPE_UINT64);
             }
             break;
         }
@@ -1303,7 +1303,7 @@ void GlobalManager::loadWebsocketInformation()
 
     ESP_LOGD(SYSTEM_DEBUG_HEADER, "websocket domain: %s\n", this->globalRemoteWebsocketDomain.c_str());
 
-    if (db("websocketPort")->getType() == STRING)
+    if (db("websocketPort")->getType() == ETYPE_STRING)
     {
         (*db("websocketPort")) = (uint16_t)(db("websocketPort")->getString().toInt());
         db.flush();
@@ -1495,10 +1495,10 @@ void GlobalManager::initializeBasicInformation()
             Element *rtnValue = new Element("OK");
 
             auto typeOfPayload = payload->getType();
-            if (typeOfPayload == NONE)
+            if (typeOfPayload == ETYPE_VOID)
                 return nullptr;
 
-            if (typeOfPayload == STRING)
+            if (typeOfPayload == ETYPE_STRING)
             {
                 if (payload->getRawBufferLength() > 2)
                 {
@@ -1509,7 +1509,7 @@ void GlobalManager::initializeBasicInformation()
                     *rtnValue = "empty string";
                 }
             }
-            else if (typeOfPayload == U8A)
+            else if (typeOfPayload == ETYPE_BUFFER)
             {
                 if (payload->getRawBufferLength())
                 {
@@ -1583,7 +1583,7 @@ void GlobalManager::initializeBasicInformation()
             if (!arguments->size())
                 return new Element(PI_INVALID_LENGTH_OF_ARGUMENTS);
 
-            if ((arguments->at(0)->getType() != STRING) || (!arguments->at(0)->getString().length()))
+            if ((arguments->at(0)->getType() != ETYPE_STRING) || (!arguments->at(0)->getString().length()))
                 return new Element(PI_INVALID_ARGUMENT);
 
             *db("token") = arguments->at(0);
@@ -1602,7 +1602,7 @@ void GlobalManager::initializeBasicInformation()
                 return new Element(PI_INVALID_LENGTH_OF_ARGUMENTS);
             }
 
-            if (arguments->at(0)->getType() != STRING || arguments->at(1)->getType() != STRING)
+            if (arguments->at(0)->getType() != ETYPE_STRING || arguments->at(1)->getType() != ETYPE_STRING)
             {
                 return new Element(PI_INVALID_TYPE_OF_ARGUMENT);
             }
@@ -1673,7 +1673,7 @@ void GlobalManager::initializeBasicInformation()
                 std::vector<Unit *> *list = db.list();
                 std::vector<Unit *>::iterator it = list->begin();
                 std::vector<Unit *>::iterator end = list->end();
-                ElementType type = NONE;
+                ElementType type = ETYPE_VOID;
 
                 for (; it != end; ++it)
                 {
@@ -1817,7 +1817,7 @@ void GlobalManager::initializeBasicInformation()
             }
             else
             {
-                if (arguments->at(0)->getType(true) == NUMBER)
+                if (arguments->at(0)->getType(true) == ETYPE_NUMBER)
                 {
                     uint32_t t = arguments->at(0)->getNumber();
                     setTimeout(
@@ -1856,7 +1856,7 @@ void GlobalManager::initializeBasicInformation()
             Element *value = new Element(PI_INVALID_SSID_PROVIDED);
             if (!arguments->size())
                 return value;
-            if (!arguments->at(0)->getType() == STRING || !arguments->at(0)->getString().length())
+            if (!arguments->at(0)->getType() == ETYPE_STRING || !arguments->at(0)->getString().length())
                 return value;
 
             delete value;
@@ -1878,7 +1878,7 @@ void GlobalManager::initializeBasicInformation()
             Element *value = new Element(PI_INVALID_WIFI_PASSWORD);
             if (!arguments->size())
                 return value;
-            if (!arguments->at(0)->getType() == STRING || !arguments->at(0)->getString().length())
+            if (!arguments->at(0)->getType() == ETYPE_STRING || !arguments->at(0)->getString().length())
                 return value;
             if (arguments->at(0)->getString().length() < 8)
                 return value;
@@ -1970,7 +1970,6 @@ void GlobalManager::setSerialRecvCb()
 
                 if (!size)
                 {
-                    Serial.println("empty data");
                     return;
                 }
 
@@ -1979,7 +1978,7 @@ void GlobalManager::setSerialRecvCb()
                     char buf[128] = {0};
 
                     size = Serial.readBytes(buf, Serial.available());
-                    this->webSerial(new Element(true, (uint8_t *)buf, size));
+                    this->webSerial(new Element((uint8_t *)buf, size, false, 0));
                 }
                 else
                 {
@@ -1997,7 +1996,7 @@ void GlobalManager::setSerialRecvCb()
                     }
                     bzero(buf, size);
                     size = Serial.readBytes(buf, size - 4);
-                    this->webSerial(new Element(true, (uint8_t *)buf, size));
+                    this->webSerial(new Element((uint8_t *)buf, size, false, 0));
                     delete buf;
                 }
             }
@@ -2207,7 +2206,7 @@ bool GlobalManager::authorize(
 
     // reject request if invalid data type detected
     // 检测到不合法数据类型时直接拒绝认证请求
-    if (remoteHash->getType() != U8A)
+    if (remoteHash->getType() != ETYPE_BUFFER)
         return false;
 
     // check length of data
@@ -2219,7 +2218,7 @@ bool GlobalManager::authorize(
     // a valid timestamp must be a 64bits number
     // 检查时间戳
     // 合格的时间戳必然是64位整数
-    if (timestamp->getType() != UINT64)
+    if (timestamp->getType() != ETYPE_UINT64)
         return false;
 
     // get time
@@ -2274,8 +2273,8 @@ bool GlobalManager::authorize(
 
     // use non-copy mode
     // 使用非拷贝模式
-    Element x(true, buf, SHA_LENGTH);
-    Element y(true, localHash, SHA_LENGTH);
+    Element x(buf, SHA_LENGTH, false);
+    Element y(localHash, SHA_LENGTH, false);
 
     if (x == y)
     {
@@ -2309,8 +2308,8 @@ bool GlobalManager::authorize(
             // calc sha256
             mycrypto::SHA::sha256((uint8_t *)hash.c_str(), hash.length(), localHash);
 #endif
-            Element x(true, buf, SHA_LENGTH);
-            Element y(true, localHash, SHA_LENGTH);
+            Element x(buf, SHA_LENGTH, false);
+            Element y(localHash, SHA_LENGTH, false);
             if (x == y)
             {
                 (*isAdmin) = false;

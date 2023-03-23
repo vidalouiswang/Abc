@@ -133,6 +133,54 @@
             this.container = div;
         }
         execute() {
+
+            if (window.android) {
+                let exists = window.android.getExists();
+
+                if (exists.length) {
+                    let tmp = exists.split(",");
+
+                    if (tmp.length % 5) {
+                        window.android.update("invalid length");
+                        return;
+                    }
+                }
+
+                let tmp = exists.split(",");
+
+                let arr = [];
+
+                for (let h = 0; h < tmp.length; h += 5) {
+                    let json = {
+                        id: tmp[h],
+                        name: tmp[h + 1],
+                        boardID: tmp[h + 2],
+                        nickname: tmp[h + 3],
+                        isAdmin: tmp[h + 4]
+                    };
+
+                    arr.push(json);
+                }
+
+                let obj = arr.find(e => {
+                    return e.id == this.providerID && e.boardID == this.boardID;
+                });
+
+                if (obj) {
+                    obj.name = this.name;
+                    exists = "";
+                    for (let i of arr) {
+                        exists += `${exists.length ? "," : ""}${i.id},${i.name},${i.boardID},${i.nickname},${i.isAdmin}`;
+                    }
+                } else {
+                    exists += `${exists.length ? "," : ""}${this.providerID},${this.name},${this.boardID},${this.parent.info.nickname},${this.isAdmin ? "admin" : "user"}`;
+                }
+
+                window.android.update(exists);
+
+                return;
+            }
+
             let t = new Date().getTime();
             let hash = getHash(w.userName + w.password + t.toString(), !0);
 

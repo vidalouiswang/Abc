@@ -10,11 +10,12 @@
  * @copyright Copyright (c) 2022
  *
  */
-#pragma once
+#ifndef OTA_H_
+#define OTA_H_
 #include <Arduino.h>
 #include <mywebsocket.h>
 #include "esp_ota_ops.h"
-#include <arraybuffer.h>
+#include <arraybuffer.hpp>
 #include <config.h>
 #include <functional>
 #include <vector>
@@ -121,3 +122,5 @@ public:
 
     ~WebsocketOTA();
 };
+
+#endif

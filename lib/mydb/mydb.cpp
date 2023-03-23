@@ -1,58 +1,5 @@
 #include "mydb.h"
 
-bool Unit::setNumber(int64_t data, ElementType type)
-{
-    if (!this->key)
-        return false;
-    if (data < 0)
-        return false;
-
-    this->clearValue();
-
-    switch (type)
-    {
-    case UINT8:
-        this->value = new Element((uint8_t)data);
-        break;
-    case UINT16:
-        this->value = new Element((uint16_t)data);
-        break;
-    case UINT32:
-        this->value = new Element((uint32_t)data);
-        break;
-    case UINT64:
-        this->value = new Element((uint64_t)data);
-        break;
-    case NONE:
-        this->value = new Element((int)data);
-        break;
-    default:
-        return false;
-    }
-    this->isRemoved = false;
-    return true;
-}
-
-bool Unit::setValue(Element *data)
-{
-    if (!this->key)
-        return false;
-    this->clearValue();
-    if (!data)
-    {
-        this->isRemoved = true;
-        return true;
-    }
-    if (data->getType() == NONE)
-    {
-        this->isRemoved = true;
-        return true;
-    }
-    this->value = new Element(data);
-    this->isRemoved = false;
-    return true;
-}
-
 std::vector<Element *> *MyDB::readFile(bool mainFile)
 {
     uint64_t outLen = 0;
@@ -98,6 +45,7 @@ void MyDB::buildContainer(std::vector<Element *> *list)
 
     for (; it != end;)
     {
+        ESP_LOGD(MYDB_DEBUG_HEADER, "list-> %s", (*it)->c_str());
         Unit *u = new Unit((*it));
         ++it;
         if (it == end)
@@ -114,7 +62,7 @@ void MyDB::buildContainer(std::vector<Element *> *list)
 
 bool MyDB::begin()
 {
-    ESP_LOGD(MYDB_DEBUG_HEADER, "mydb begining");
+    ESP_LOGD(MYDB_DEBUG_HEADER, "mydb begining, db name: [%s]", this->name.c_str());
     this->container = new std::vector<Unit *>();
     this->loaded = true;
 
@@ -194,7 +142,7 @@ void MyDB::dump(uint8_t **buffer, uint64_t *outLen)
 
     for (; it != end; ++it)
     {
-        if (!(*it)->isRemoved && (*it)->key->available() && (*it)->value->available())
+        if ((*it)->key->available() && (*it)->value->available())
         {
             list.push_back((*it)->key);
             list.push_back((*it)->value);
@@ -254,6 +202,7 @@ int64_t MyDB::findIndex(Element *key)
     for (uint32_t i = 0; i < length; ++i)
     {
         // ESP_LOGD(MYDB_DEBUG_HEADER, "left address: %x, right address: %x", eKey, key);
+
         if (this->container->at(i)->key->equalsTo(key))
         {
             return i;
@@ -293,7 +242,7 @@ Element *MyDB::operator()(Element *key)
     int64_t index = this->findIndex(key);
     if (index < 0)
     {
-        ESP_LOGD(MYDB_DEBUG_HEADER, "unit does not exists");
+        ESP_LOGD(MYDB_DEBUG_HEADER, "unit does not exists [%s]", key->c_str());
         Unit *unit = new Unit(key, new Element());
         ESP_LOGD(MYDB_DEBUG_HEADER, "new unit created");
 

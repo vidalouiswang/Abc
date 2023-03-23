@@ -13,10 +13,11 @@
  *
  */
 
-#pragma once
+#ifndef MYDB_H_
+#define MYDB_H_
 
 #include <myfs.h>
-#include <arraybuffer.h>
+#include <arraybuffer.hpp>
 #include <vector>
 
 #define MYDB_DEBUG_HEADER "mydb"
@@ -24,30 +25,6 @@
 class Unit
 {
 private:
-    /**
-     * @brief set value as a number
-     * 设置值为一个数字
-     *
-     * @param data number 数字
-     * @param type type(optional) 类型(可选)
-     * @return true success 成功
-     * @return false failed 失败
-     */
-    bool setNumber(int64_t data, ElementType type = NONE);
-
-    /**
-     * @brief set value copy from another element, attention attached
-     * 从另一个element拷贝值, 请阅读注意事项
-     *
-     * @param data pointer of another element object 另一个element对象的指针
-     * @return true success 成功
-     * @return false failed 失败
-     *
-     * @attention will mark current unit as disposed if empty pointer/(object stored) value provided
-     * 如果提供了一个空指针或者没有存储任何数据的对象，则将当前unit标记为已丢弃的
-     */
-    bool setValue(Element *data);
-
 public:
     // key
     // 键
@@ -57,11 +34,7 @@ public:
     // 值
     Element *value = nullptr;
 
-    // indicate current unit has been removed
-    // 指示当前unit是已删除的
-    bool isRemoved = false;
-
-    Unit();
+    Unit() {}
 
     /**
      * @brief default unit constructor
@@ -84,13 +57,12 @@ public:
 
     // clear value
     // 清除值
-    inline void clearValue()
+    inline void removeValue()
     {
         if (this->value)
         {
             delete this->value;
-            this->value = nullptr;
-            this->isRemoved = true;
+            this->value = new Element();
         }
     }
 };
@@ -405,3 +377,5 @@ public:
 extern MyDB db;
 extern MyDB dbUser;
 extern MyDB dbApp;
+
+#endif

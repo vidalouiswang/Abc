@@ -14,7 +14,8 @@
  *
  */
 
-#pragma once
+#ifndef CONFIG_H_
+#define CONFIG_H_
 
 // version of system
 // 主框架版本号
@@ -455,3 +456,5 @@
 #define CMD_AP_CONNECT_WIFI 0x90
 #define CMD_AP_WIFI_UNAVAILABLE 0x10
 #define CMD_AP_WIFI_CONNECTED 0X11
+
+#endif

@@ -10,7 +10,9 @@
  * @copyright Copyright (c) 2022
  *
  */
-#pragma once
+#ifndef GLOBAL_MANAGER_H_
+#define GLOBAL_MANAGER_H_
+
 #include <Arduino.h>
 #include <vector>
 #include <map>
@@ -23,6 +25,7 @@
 #include <ota.h>
 #include <provider.h>
 #include <softtimer.h>
+
 // #include <DNSServer.h>
 
 // disposable hash
@@ -53,7 +56,8 @@ typedef enum : uint32_t
 
 // firmware compile time
 // 固件编译时间
-#define FIRMWARE_COMPILE_TIME "@2023/02/07-18:41:18"
+#define FIRMWARE_COMPILE_TIME "@2023/03/23-20:39:49"
+
 
 void otaTask(void *);
 void APScheduler(void *t);
@@ -1154,3 +1158,5 @@ public:
  * 使用指针用以区分
  */
 extern GlobalManager *global;
+
+#endif

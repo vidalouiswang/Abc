@@ -34,7 +34,9 @@
   SOFTWARE.
 */
 
-#pragma once
+#ifndef ESP32_TIME_H_
+#define ESP32_TIME_H_
+
 #include <Arduino.h>
 #include "time.h"
 #include <sys/time.h>
@@ -217,3 +219,5 @@ public:
 };
 
 extern Esp32Time *globalTime;
+
+#endif

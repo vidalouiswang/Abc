@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <unity.h>
-#include <arraybuffer.h>
+#include <arraybuffer.hpp>
 #include <vector>
 #include <mycrypto.h>
 #include <mydb.h>
@@ -57,220 +57,539 @@ void test_aes_decode()
     TEST_ASSERT_EQUAL_STRING(result.c_str(), mycrypto::AES::aes256CBCDecrypt(key, iv, cipher).c_str());
 }
 
-void test_element_constrauctors_and_operators()
+void test_element_new_operators()
 {
-    Element *z = new Element();
-    TEST_ASSERT_NULL(z->getRawBuffer());
-    delete z;
+    Element a = 10;
+    Element b = -2;
 
-    z = new Element("Hello world!");
-    TEST_ASSERT_NOT_NULL(z->getRawBuffer());
-    delete z;
+    uint8_t u8 = 1;
+    int8_t i8 = -1;
+    uint16_t u16 = 2;
+    int16_t i16 = -2;
+    uint32_t u32 = 4;
+    int32_t i32 = -4;
+    uint64_t u64 = 8;
+    int64_t i64 = -8;
+    float f = 1.23f;
+    double d = 3.1415926f;
 
-    Element a(0xff);
-    Element b((uint8_t)0xff);
-    Element *c = new Element(0xff);
-    Element d((uint16_t)0xffff);
-    Element e((uint64_t)0xffffffff);
+    char buf[128] = {0};
 
-    uint8_t buffer[] = {1, 2, 3};
-    Element x(buffer, 3);
-    Element y(buffer, 3);
+    // ==
+    TEST_ASSERT_TRUE(a == 10);
+    TEST_ASSERT_TRUE(b == -2);
 
-    TEST_ASSERT_TRUE(a == b);
-    TEST_ASSERT_TRUE(!(a == d));
-    TEST_ASSERT_TRUE(!(a == e));
-    TEST_ASSERT_TRUE(a.equalsTo(&b));
-    TEST_ASSERT_TRUE(a.equalsTo(c));
+    a = "Hello World!";
+    TEST_ASSERT_TRUE(a == "Hello World!");
 
-    TEST_ASSERT_TRUE(a < d);
-    TEST_ASSERT_TRUE(d > a);
-
-    TEST_ASSERT_TRUE(a < &d);
-    TEST_ASSERT_TRUE(d > &a);
-
-    TEST_ASSERT_TRUE(a <= d);
-    TEST_ASSERT_TRUE(d >= a);
-
-    TEST_ASSERT_TRUE(a <= &d);
-    TEST_ASSERT_TRUE(d >= &a);
-
-    TEST_ASSERT_TRUE(x.getU8aLen() == 3);
-    TEST_ASSERT_TRUE(x == y);
-
-    a.setNumber(100);
-    TEST_ASSERT_TRUE(a.getNumber() == 100);
-
-    a.setString(String("Hello world!"));
-    TEST_ASSERT_TRUE(a.getType() == STRING);
-    TEST_ASSERT_TRUE(a.getString() == "Hello world!");
-
-    TEST_ASSERT_TRUE(a.setUint8Array(buffer, 3));
-    TEST_ASSERT_TRUE(a.getType() == U8A);
-    TEST_ASSERT_TRUE(a.getU8aLen() == 3);
-    TEST_ASSERT_TRUE(a.getUint8Array()[2] == 3);
-
-    int number = random(0, 0xff);
-
-    a = number;
-    TEST_ASSERT_TRUE(a.getNumber() == number);
-
-    number = random(0xff, 0xffff);
-    a = number;
-    TEST_ASSERT_TRUE(a.getNumber() == number);
-
-    number = random(0xffff, 0xffffffff);
-    a = number;
-    TEST_ASSERT_TRUE(a.getNumber() == number);
-
-    String helloWorld = "Hello world!";
-    a = helloWorld.c_str();
-    TEST_ASSERT_EQUAL_STRING(helloWorld.c_str(), a.getString().c_str());
-
+    // =
+    a = 5;
+    TEST_ASSERT_TRUE(a == 5);
+    a = -5;
+    TEST_ASSERT_TRUE(a == -5);
+    a = -2147483666ll;
+    TEST_ASSERT_TRUE(a == -2147483666ll);
     a = 0;
-
-    a = helloWorld;
-    TEST_ASSERT_EQUAL_STRING(helloWorld.c_str(), a.getString().c_str());
-
-    a = 0;
-
-    a = &helloWorld;
-    TEST_ASSERT_EQUAL_STRING(helloWorld.c_str(), a.getString().c_str());
-
+    TEST_ASSERT_TRUE(a == 0);
+    a = f;
+    TEST_ASSERT_TRUE(a == f);
     a = d;
     TEST_ASSERT_TRUE(a == d);
 
-    a = c;
-    TEST_ASSERT_TRUE(a == c);
+    a = "Hello World!";
+    TEST_ASSERT_EQUAL_STRING("Hello World!", a.c_str());
 
-    delete c;
-}
+    a = 5;
+    b = 5;
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "a type: %d, b type: %d, ai32: %d, bi32: %d, aram: 0x%x, bram:0x%x",
+            a.getType(),
+            b.getType(),
+            a.getInt32(),
+            b.getInt32(),
+            a.getRAM(),
+            b.getRAM());
+    TEST_ASSERT_TRUE_MESSAGE(a.equalsTo(&b), buf);
 
-void test_element_math_operators()
-{
-    // unity tool doest not support 64bits number some condition
-    // so use 32bits
+    // !=
+    TEST_ASSERT_TRUE(a != 6);
+    TEST_ASSERT_TRUE(a != 2147483666llu);
+
+    a = "Abc";
+    TEST_ASSERT_TRUE(a != "def");
+
+    // <
+    a = 5;
+    b = 8;
+    TEST_ASSERT_TRUE(b == 8);
+    TEST_ASSERT_TRUE(a < 6);
+    TEST_ASSERT_TRUE(a < b);
+    a = -8;
+    TEST_ASSERT_TRUE(a < -2);
+
+    a = "a";
+    TEST_ASSERT_TRUE(a < "b");
+
+    // >
+    a = 3;
+    b = 1;
+    TEST_ASSERT_TRUE(b == 1);
+    TEST_ASSERT_TRUE(a > 2);
+    TEST_ASSERT_TRUE(a > b);
+    a = -8;
+    TEST_ASSERT_TRUE(a > -9);
+
+    a = "c";
+    TEST_ASSERT_TRUE(a > "a");
+
+    // <=
+    a = 5;
+    b = 8;
+    TEST_ASSERT_TRUE(b == 8);
+    TEST_ASSERT_TRUE(a <= 6);
+    TEST_ASSERT_TRUE(a <= 5);
+    TEST_ASSERT_TRUE(a <= b);
+    b = 5;
+    TEST_ASSERT_TRUE(b == 5);
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "a: %lf, b: %lf, b type: %d, ram: 0x%x",
+            a.getUniversalDouble(),
+            b.getUniversalDouble(),
+            b.getType(),
+            b.getRAM());
+    TEST_ASSERT_TRUE_MESSAGE(a <= b, buf);
+    a = -8;
+    TEST_ASSERT_TRUE(a <= -2);
+    a = -2;
+    TEST_ASSERT_TRUE(a <= -2);
+
+    a = "a";
+    TEST_ASSERT_TRUE(a <= "b");
+    TEST_ASSERT_TRUE(a <= "a");
+
+    // >=
+    a = 8;
+    b = 3;
+    TEST_ASSERT_TRUE(a >= 6);
+    a = 6;
+    TEST_ASSERT_TRUE(a >= 6);
+    TEST_ASSERT_TRUE(a >= 5);
+    TEST_ASSERT_TRUE(a >= b);
+    b = 6;
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "a: %lf, b: %lf, b type: %d, ram: 0x%x",
+            a.getUniversalDouble(),
+            b.getUniversalDouble(),
+            b.getType(),
+            b.getRAM());
+    TEST_ASSERT_TRUE_MESSAGE(a >= b, buf);
+    a = -8;
+    TEST_ASSERT_TRUE(a >= -9);
+    a = -2;
+    TEST_ASSERT_TRUE(a >= -2);
+
+    a = "c";
+    TEST_ASSERT_TRUE(a >= "b");
+    TEST_ASSERT_TRUE(a >= "c");
 
     // +
-    Element a;
-    Element b = 90;
-    a = 6;
-    TEST_ASSERT_TRUE((uint32_t)(a + 10) == (uint32_t)(6 + 10));
-    TEST_ASSERT_TRUE((uint32_t)(a + b) == (uint32_t)(6 + 90));
-    a += 2;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(8));
+
+    a = 2;
+    b = 8;
+    TEST_ASSERT_TRUE(a + b == 10);
+    a = -7;
+    TEST_ASSERT_TRUE(a + b == 1);
+
+    a = "Hello";
+    b = "World!";
+
+    TEST_ASSERT_EQUAL_STRING("Hello World!", (a + " " + b).c_str());
+
+    a = "c";
+    b = 1;
+
+    TEST_ASSERT_EQUAL_STRING("c1", (a + b).c_str());
 
     // -
+    a = 8;
+    b = 2;
+    TEST_ASSERT_TRUE(a - b == 6);
+    TEST_ASSERT_TRUE(a - 5 == 3);
+    a = -9;
+    TEST_ASSERT_TRUE(a - b == -11);
+
+    a = "HeABCllo ABCWorld!ABC";
+
+    TEST_ASSERT_EQUAL_STRING("Hello World!", (a - "ABC").c_str());
+
+    // *
+
+    a = 2;
+    b = 5;
+    TEST_ASSERT_TRUE(a * b == 10);
+    TEST_ASSERT_TRUE(a * 3 == 6);
+    a = -8;
+    TEST_ASSERT_TRUE(a * 2 == -16);
+
+    a = "Hello World! ";
+
+    b = 3;
+
+    TEST_ASSERT_EQUAL_STRING("Hello World! Hello World! Hello World! ", (a * b).c_str());
+
+    // /
+
     a = 10;
-    b = 1;
-    TEST_ASSERT_TRUE((uint32_t)(a - 1) == (uint32_t)(10 - 1));
-    TEST_ASSERT_TRUE((uint32_t)(a - b) == (uint32_t)(10 - 1));
-    a -= 2;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(8));
+    b = 2;
 
-    // *, *=
-    a = 10;
-    b = 100;
-    TEST_ASSERT_TRUE((uint32_t)(a * 100) == (uint32_t)(10 * 100));
-    TEST_ASSERT_TRUE((uint32_t)(a * b) == (uint32_t)(10 * 100));
-    a *= 100;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(1000));
-    a = 10;
-    a *= b;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(1000));
+    TEST_ASSERT_TRUE(a / b == 5.0f);
 
-    // /, /=
-    a = 1000;
-    b = 10;
-    TEST_ASSERT_TRUE((uint32_t)(a / 10) == (uint32_t)(1000 / 10));
-    TEST_ASSERT_TRUE((uint32_t)(a / b) == (uint32_t)(1000 / 10));
-    a /= 10;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(100));
-    a = 1000;
-    a /= b;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(100));
+    a = 5;
+    TEST_ASSERT_TRUE(a / b == 2);
 
-    // %, %=
-    a = 96;
-    b = 9;
-    TEST_ASSERT_TRUE((uint32_t)(a % 9) == (uint32_t)(96 % 9));
-    TEST_ASSERT_TRUE((uint32_t)(a % b) == (uint32_t)(96 % 9));
-    a %= 9;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(6));
+    a = 7.5f;
+    TEST_ASSERT_TRUE(a / 2 == 3);
 
-    // String +=
-    a = "hahaha";
-    a += "666";
-    TEST_ASSERT_EQUAL_STRING("hahaha666", a.c_str());
+    a = 7.5f;
+    TEST_ASSERT_TRUE(a / 2.0f == 3.75f);
 
     // ++
-    a = 10;
+    a = 1;
+    TEST_ASSERT_TRUE(a++ == 1);
+    TEST_ASSERT_TRUE(a == 2);
+    TEST_ASSERT_TRUE(++a == 3);
 
-    TEST_ASSERT_TRUE((a++).getNumber() == 10);
-    TEST_ASSERT_TRUE((++a).getNumber() == 12);
+    a = -65542;
+    TEST_ASSERT_TRUE(a++ == -65542);
+    TEST_ASSERT_TRUE(a == -65541);
+    TEST_ASSERT_TRUE(++a == -65540);
+
+    a = (float)1.25f;
+    TEST_ASSERT_TRUE(a++ == (float)1.25f);
+    TEST_ASSERT_TRUE(a == (float)2.25f);
+    TEST_ASSERT_TRUE(++a == (float)3.25f);
+
+    a = (double)1.25f;
+    TEST_ASSERT_TRUE(a++ == (double)1.25f);
+    TEST_ASSERT_TRUE(a == (double)2.25f);
+    TEST_ASSERT_TRUE(++a == (double)3.25f);
+
+    a = "6";
+    TEST_ASSERT_TRUE(++a == "66");
+    TEST_ASSERT_TRUE(++a == "6666");
+    TEST_ASSERT_TRUE(++a == "66666666");
 
     // --
     a = 10;
+    TEST_ASSERT_TRUE(a-- == 10);
+    TEST_ASSERT_TRUE(a == 9);
+    TEST_ASSERT_TRUE(--a == 8);
 
-    TEST_ASSERT_TRUE((a--).getNumber() == 10);
-    TEST_ASSERT_TRUE((--a).getNumber() == 8);
+    a = -65542;
+    TEST_ASSERT_TRUE(a-- == -65542);
+    TEST_ASSERT_TRUE(a == -65543);
+    TEST_ASSERT_TRUE(--a == -65544);
+
+    a = (float)3.25f;
+    TEST_ASSERT_TRUE(a-- == (float)3.25f);
+    TEST_ASSERT_TRUE(a == (float)2.25f);
+    TEST_ASSERT_TRUE(--a == (float)1.25f);
+
+    a = (double)3.25f;
+    TEST_ASSERT_TRUE(a-- == (double)3.25f);
+    TEST_ASSERT_TRUE(a == (double)2.25f);
+    TEST_ASSERT_TRUE(--a == (double)1.25f);
+
+    // +=
+    a = 10;
+    a += 10;
+    TEST_ASSERT_TRUE(a == 20);
+
+    b = 6;
+    a += b;
+    TEST_ASSERT_TRUE(a == 26);
+    a = (double)19.0f;
+    b = (double)0.25f;
+
+    a += b;
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "%lf", a.getUniversalDouble());
+    TEST_ASSERT_TRUE_MESSAGE(a == 19.25f, buf);
+
+    a = (float)1.25f;
+    a += 1.25f;
+    TEST_ASSERT_TRUE(a == 2.5f);
+
+    a = (double)1.25f;
+    a += 1.25f;
+    TEST_ASSERT_TRUE(a == 2.5f);
+
+    a = "Hello ";
+    a += "World!";
+
+    TEST_ASSERT_EQUAL_STRING("Hello World!", a.c_str());
+
+    // -=
+    a = 20;
+    a -= 10;
+    TEST_ASSERT_TRUE(a == 10);
+
+    b = 2;
+    a -= b;
+    TEST_ASSERT_TRUE(a == 8);
+    a = (double)20.0f;
+    b = (double)0.25f;
+    a -= b;
+    TEST_ASSERT_TRUE(a == 19.75f);
+
+    a = (float)2.25f;
+    a -= 1.25f;
+    TEST_ASSERT_TRUE(a == 1.0f);
+
+    a = (double)2.25f;
+    a -= 1.25f;
+    TEST_ASSERT_TRUE(a == 1.0f);
+
+    a = "HeABCllo ABCWorld!ABC";
+    a -= "ABC";
+
+    TEST_ASSERT_EQUAL_STRING("Hello World!", a.c_str());
+
+    // *=
+
+    a = 8;
+    a *= 8;
+    TEST_ASSERT_TRUE(a == 64);
+
+    a = (double)(-8.25f);
+    b = a;
+
+    a *= b;
+    TEST_ASSERT_TRUE(a == (double)(68.0625f));
+
+    // /=
+
+    a = 64;
+    a /= 8;
+    TEST_ASSERT_TRUE(a == 8);
+
+    a = (double)(-10.25f);
+    b = (double)2.0f;
+
+    a /= b;
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "%lf", a.getUniversalDouble());
+    TEST_ASSERT_TRUE_MESSAGE(a == (double)(-5.125f), buf);
 
     // <<
-    a = 8;
-    TEST_ASSERT_TRUE((uint32_t)(a << 1) == (uint32_t)(8 << 1));
-    a <<= 1;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(8 << 1));
+
+    a = 2;
+    TEST_ASSERT_TRUE(a << 2 == 8);
+
+    b = 2;
+    a = 2;
+    TEST_ASSERT_TRUE(a << b == 8);
+
+    a = "abcde";
+    TEST_ASSERT_TRUE(a << b == "cde");
 
     // >>
-    a = 16;
-    TEST_ASSERT_TRUE((uint32_t)(a >> 1) == (uint32_t)(16 >> 1));
-    a >>= 1;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(16 >> 1));
+    a = 8;
+    TEST_ASSERT_TRUE(a >> 2 == 2);
 
-    // ^
-    a = 6;
-    TEST_ASSERT_TRUE((uint32_t)(a ^ 10) == (uint32_t)(6 ^ 10));
-    a ^= 10;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(6 ^ 10));
+    b = 2;
+    a = 8;
+    TEST_ASSERT_TRUE(a >> b == 2);
+
+    a = "abcde";
+    TEST_ASSERT_TRUE(a >> b == "abc");
+
+    // %
+    a = 10;
+    b = 3;
+    TEST_ASSERT_TRUE(a % b == 1);
+
+    // %=
+
+    a = 100;
+    b = 13;
+    a %= b;
+    TEST_ASSERT_TRUE(a == 9);
+
+    // <<=
+    a = 2;
+    a <<= 2;
+    TEST_ASSERT_TRUE(a == 8);
+
+    b = 2;
+    a = 2;
+    a <<= b;
+    TEST_ASSERT_TRUE(a == 8);
+
+    a = "abcde";
+    a <<= b;
+    TEST_ASSERT_TRUE(a == "cde");
+
+    // >>=
+    a = 8;
+    a >>= 2;
+    TEST_ASSERT_TRUE(a == 2);
+
+    b = 2;
+    a = 8;
+    a >>= b;
+    TEST_ASSERT_TRUE(a == 2);
+
+    a = "abcde";
+    a >>= b;
+    TEST_ASSERT_TRUE(a == "abc");
 
     // &
-    a = 6;
-    TEST_ASSERT_TRUE((uint32_t)(a & 10) == (uint32_t)(6 & 10));
+    a = 0b01001000;
+    b = 0b00101000;
+    u8 = 0b00101000;
+    Element c = 0b00100000;
 
-    a &= 10;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(6 & 10));
+    TEST_ASSERT_TRUE((a & u8) == 0b00001000);
+    TEST_ASSERT_TRUE((a & b) == 0b00001000);
+    TEST_ASSERT_TRUE((a & c) == 0);
 
     // |
-    a = 6;
-    TEST_ASSERT_TRUE((uint32_t)(a | 10) == (uint32_t)(6 | 10));
-    a |= 10;
-    TEST_ASSERT_TRUE((uint32_t)a.getNumber() == (uint32_t)(6 | 10));
+    a = 0b01001000;
+    b = 0b00101000;
+    u8 = 0b00101000;
+    c = 0b00100001;
+
+    TEST_ASSERT_TRUE((a | u8) == 0b01101000);
+    TEST_ASSERT_TRUE((a | b) == 0b01101000);
+    TEST_ASSERT_TRUE((a | c) == 0b01101001);
 
     // ~
+    a = 0xFFFF;
+    TEST_ASSERT_TRUE(((~a) & 0xffff) == 0x0);
+
+    // &=
+    a = 0b01001000;
+    b = 0b00101000;
+    a &= b;
+
+    TEST_ASSERT_TRUE(a == 0b00001000);
+
+    // |=
+    a = 0b01001000;
+    b = 0b00101000;
+    a &= b;
+
+    TEST_ASSERT_TRUE(a == 0b00001000);
+
+    // ^
+    a = 0b10000100;
+    b = 0b10111111;
+
+    TEST_ASSERT_TRUE((a ^ b) == 0b00111011);
+
+    // ^=
+    a = 0b10000100;
+    b = 0b10111111;
+    a ^= b;
+    TEST_ASSERT_TRUE(a == 0b00111011);
+
+    // &&
+    a = 0;
+    TEST_ASSERT_TRUE((a && false) == false);
+
+    a = (float)0.0f;
+    TEST_ASSERT_TRUE((a && false) == false);
+
+    a = (float)1.23f;
+    TEST_ASSERT_TRUE((a && true) == true);
+
+    a = (double)0.0f;
+    TEST_ASSERT_TRUE((a && false) == false);
+
+    a = (double)3.1415926f;
+    TEST_ASSERT_TRUE((a && true) == true);
+
+    a = "abc";
+    TEST_ASSERT_TRUE((a && false) == false);
+
+    a = "";
+    TEST_ASSERT_TRUE((a && false) == false);
+
+    a = 666;
+    TEST_ASSERT_TRUE(a && true);
+
+    // ||
+    a = 0;
+    TEST_ASSERT_TRUE((a || false) == false);
+
+    a = (float)0.0f;
+    TEST_ASSERT_TRUE((a || true) == true);
+
+    a = (float)1.23f;
+    TEST_ASSERT_TRUE((a || false) == true);
+
+    a = (double)0.0f;
+    TEST_ASSERT_TRUE((a || true) == true);
+
+    a = (double)3.1415926f;
+    TEST_ASSERT_TRUE((a || false) == true);
+
+    a = "abc";
+    TEST_ASSERT_TRUE((a || false) == true);
+
+    a = "";
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "string length: %u, type: 0x%x, str: [%s]", strlen(a.c_str()), a.getType(), a.c_str());
+    TEST_ASSERT_TRUE_MESSAGE((a || false) == false, buf);
+
+    a = 666;
+    TEST_ASSERT_TRUE(a || true);
+
+    // !
     a = 6;
-    TEST_ASSERT_TRUE((uint32_t)(~a) == (uint32_t)(~6));
-}
+    TEST_ASSERT_TRUE(!a == false);
+    a = 0;
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "type: %d, value: %llu, buffer length: %u", a.getType(), a.getUint64(), a.getBufferLength());
+    TEST_ASSERT_TRUE_MESSAGE(!a == true, buf);
 
-void test_element_copyFrom()
-{
-    uint8_t buffer[] = {0, 0x80, 0xff};
-    String helloWorld = "Hello world!";
-    Element b(helloWorld);
-    int n = random(0, 0xffff);
+    a = (float)0.0f;
+    TEST_ASSERT_TRUE(!a == true);
 
-    Element a(n);
+    a = (float)1.23f;
+    TEST_ASSERT_TRUE(!a == false);
 
-    a.copyFrom(buffer, 3);
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(a.getUint8Array(), buffer, 3);
+    a = (double)0.0f;
+    TEST_ASSERT_TRUE(!a == true);
 
-    a.copyFrom(&b);
-    TEST_ASSERT_EQUAL_STRING(a.getString().c_str(), b.getString().c_str());
+    a = (double)3.1415926f;
+    TEST_ASSERT_TRUE(!a == false);
 
-    TEST_ASSERT_TRUE(a.getString().length() == b.getString().length());
+    a = "";
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "string length: %u, type: 0x%x, str: [%s]", strlen(a.c_str()), a.getType(), a.c_str());
+    TEST_ASSERT_TRUE_MESSAGE(!a == true, buf);
 
-    b.setNumber(n);
-    a.copyFrom(&b);
-    TEST_ASSERT_TRUE(a.getNumber() == n);
+    a = "abc";
+    TEST_ASSERT_TRUE(!a == false);
+
+    // []
+
+    a = "Hello World!";
+
+    String str = "";
+    str += (char)a[6];
+    TEST_ASSERT_EQUAL_STRING("W", str.c_str());
+
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "[]value: %d", a[12]);
+
+    TEST_ASSERT_TRUE_MESSAGE(a[12] == 0, buf);
+
+    TEST_ASSERT_TRUE_MESSAGE(a[13] < 0, buf);
+
+    // 2023/03/23 all tests passed
 }
 
 void test_element_getHex()
@@ -292,6 +611,13 @@ void test_element_convertHexStringIntoUint8Array()
 
 void test_createArrayBuffer_and_decodeArrayBuffer()
 {
+
+    Element a = "Hello world!";
+
+    Element b = "Hello world!";
+
+    TEST_ASSERT_TRUE(a == b);
+
     uint8_t buffer[1024] = {0};
     for (uint32_t i = 0; i < 1024; ++i)
     {
@@ -303,6 +629,12 @@ void test_createArrayBuffer_and_decodeArrayBuffer()
             new Element(0x80),
             new Element(0xffff),
             new Element(0xffffffff),
+            new Element(-8),
+            new Element(-160),
+            new Element(-40000),
+            new Element(-2147483666),
+            new Element((float)1.23f),
+            new Element((double)3.1415926f),
             new Element("Hello world!"),
             new Element(buffer, 1024)};
 
@@ -312,48 +644,30 @@ void test_createArrayBuffer_and_decodeArrayBuffer()
         [&container](uint8_t *output, uint64_t length, bool *isBufferDeleted)
         {
             ArrayBuffer::decodeArrayBuffer(
-                [&container](std::vector<Element *> *origin)
+                [&container](std::vector<Element *> *decoded)
                 {
-                    TEST_ASSERT_TRUE(origin->size() == 6);
-                    for (int i = 0; i < 6; ++i)
+                    TEST_ASSERT_TRUE(decoded->size() == container.size());
+                    for (int i = 0; i < container.size(); ++i)
                     {
+
                         // char buf[1024] = {0};
-                        // sprintf(buf, "index: %u, typeA: %u, typeB: %u, stringA: %s, stringB: %s",
-                        //         i, origin->at(i)->getType(), container.at(i)->getType(),
-                        //         origin->at(i)->getString().c_str(),
-                        //         container.at(i)->getString().c_str());
-                        TEST_ASSERT_TRUE_MESSAGE(*(origin->at(i)) == *(container.at(i)), "");
+                        // sprintf(buf,
+                        //         "index: %u, origin type:%d, decoded type: %d, string orgin: %s, string decoded: %s, double orgin: %lf, double decoded: %lf",
+                        //         i,
+                        //         container.at(i)->getType(),
+                        //         decoded->at(i)->getType(),
+                        //         container.at(i)->getString().c_str(),
+                        //         decoded->at(i)->getString().c_str(),
+                        //         container.at(i)->getUniversalDouble(),
+                        //         decoded->at(i)->getUniversalDouble());
+                        TEST_ASSERT_TRUE_MESSAGE(
+                            (*(decoded->at(i))) == (*(container.at(i))),
+                            "");
                     }
                 },
                 output,
                 length);
         });
-}
-
-void test_element_type()
-{
-    Element a = 10;
-    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
-    TEST_ASSERT_TRUE(a.getType() == UINT8);
-
-    a = (uint8_t)10;
-    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
-    TEST_ASSERT_TRUE(a.getType() == UINT8);
-
-    a = (uint16_t)65535;
-    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
-    TEST_ASSERT_TRUE(a.getType() == UINT16);
-
-    a = (uint32_t)65536;
-    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
-    TEST_ASSERT_TRUE(a.getType() == UINT32);
-
-    a = (uint64_t)0xffffffffffffULL;
-    TEST_ASSERT_TRUE(a.getType(true) == NUMBER);
-    TEST_ASSERT_TRUE(a.getType() == UINT64);
-
-    a = "Hello world";
-    TEST_ASSERT_TRUE(a.getType(true) != NUMBER);
 }
 
 void test_mydb()
@@ -382,11 +696,8 @@ void setup()
     UNITY_BEGIN();
 
     // array buffer
-    RUN_TEST(test_element_constrauctors_and_operators);
-    RUN_TEST(test_element_math_operators);
-    RUN_TEST(test_element_copyFrom);
+    RUN_TEST(test_element_new_operators);
     RUN_TEST(test_element_getHex);
-    RUN_TEST(test_element_type);
     RUN_TEST(test_element_convertHexStringIntoUint8Array);
     RUN_TEST(test_createArrayBuffer_and_decodeArrayBuffer);
 

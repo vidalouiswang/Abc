@@ -10,7 +10,8 @@
  * 
  */
 
-#pragma once
+#ifndef LANGUAGES_H_
+#define LANGUAGES_H_
 #include "config.h"
 
 #ifdef CHINESE_VERSION
@@ -173,5 +174,7 @@
 
 #define PI_FIRMWARE_ERROR_TIME "Firmware error: %llu"
 
+
+#endif
 
 #endif
