@@ -670,6 +670,69 @@ void test_createArrayBuffer_and_decodeArrayBuffer()
         });
 }
 
+void test_element_SHA()
+{
+    Element a = "Hello World!";
+    Element sha = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069";
+    String b = a.getSHA256HexString(true);
+    TEST_ASSERT_TRUE_MESSAGE(
+        a == sha,
+        b.c_str());
+}
+
+void test_element_crypto()
+{
+    Element a = "Hello World!";
+
+    TEST_ASSERT_TRUE(a.AES256_CBC("0123456789abcdef0123456789abcdef", "0123456789abcdef"));
+
+    TEST_ASSERT_TRUE_MESSAGE(a.getHex() == "68c389f8fe135cb9fda801754c36b361", a.getHex().c_str());
+
+    a = "Hello World!";
+    TEST_ASSERT_TRUE(a.toAES256CBCHexString("0123456789abcdef0123456789abcdef", "0123456789abcdef"));
+    TEST_ASSERT_TRUE_MESSAGE(a == "68c389f8fe135cb9fda801754c36b361", a.c_str());
+
+    a = "Hello World!";
+    TEST_ASSERT_TRUE(a.toAES256CBCBase64("0123456789abcdef0123456789abcdef", "0123456789abcdef"));
+    TEST_ASSERT_TRUE_MESSAGE(a == "aMOJ+P4TXLn9qAF1TDazYQ==", a.c_str());
+
+    // base64
+    a = "Hello World!";
+    a.toBase64(true);
+    TEST_ASSERT_TRUE(a == "SGVsbG8gV29ybGQh");
+    a.fromBase64(true);
+    TEST_ASSERT_TRUE(a == "Hello World!");
+
+    // 2023/03/24, all tests passed
+    /*
+    -----------------------------------------------------------------------------------------------------------------------------------------
+    Building & Uploading...
+    Testing...
+    If you don't see any output for the first 10 secs, please reset board (press reset button)
+
+    test/test.cpp:735: test_element_new_operators   [PASSED]
+    test/test.cpp:736: test_element_getHex  [PASSED]
+    test/test.cpp:737: test_element_convertHexStringIntoUint8Array  [PASSED]
+    test/test.cpp:738: test_createArrayBuffer_and_decodeArrayBuffer [PASSED]
+    test/test.cpp:739: test_element_SHA     [PASSED]
+    test/test.cpp:740: test_element_crypto  [PASSED]
+    test/test.cpp:743: test_sha1    [PASSED]
+    test/test.cpp:744: test_sha256  [PASSED]
+    test/test.cpp:745: test_base64_encode   [PASSED]
+    test/test.cpp:746: test_base64_decode   [PASSED]
+    test/test.cpp:747: test_aes_encode      [PASSED]
+    test/test.cpp:748: test_aes_decode      [PASSED]
+    test/test.cpp:751: test_mydb    [PASSED]
+    -------------------------------------------------- esp32:* [PASSED] Took 15.02 seconds --------------------------------------------------
+
+    ================================================================ SUMMARY ================================================================
+    Environment    Test    Status    Duration
+    -------------  ------  --------  ------------
+    esp32          *       PASSED    00:00:15.020
+    ============================================== 13 test cases: 13 succeeded in 00:00:15.020 ==============================================
+    */
+}
+
 void test_mydb()
 {
     MyFS::myfsInit();
@@ -700,6 +763,8 @@ void setup()
     RUN_TEST(test_element_getHex);
     RUN_TEST(test_element_convertHexStringIntoUint8Array);
     RUN_TEST(test_createArrayBuffer_and_decodeArrayBuffer);
+    RUN_TEST(test_element_SHA);
+    RUN_TEST(test_element_crypto);
 
     // mycrypto
     RUN_TEST(test_sha1);

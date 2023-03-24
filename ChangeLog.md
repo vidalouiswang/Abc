@@ -1,3 +1,24 @@
+2023/03/24
+
+English:
+
+1. Bug fixed:
+    * Remove "\r\n" in /scripts/replaceHtml.js to avoid too many empty lines in globalmmanager.h following compile time. 
+    * Fix SHA logical error in class Element.
+
+2. Add convenient functions of Base64, SHA256 and AES to class Element.
+3. Add more unit test to /test/test.cpp.
+
+
+中文: 
+
+1. 错误修复: 
+    * 移除了 /scripts/replaceHtml.js 中多余的 "\r\n" 来避免文件 globalmanager.h 中编译时间后多余的空行。
+    * 修复了 类 Element 中 SHA 的逻辑错误。
+
+2. 给 类 Element 增加了方便的Base64、SHA256、AES 相关函数。
+3. 添加了更多的单元测试到 /test/test.cpp。
+
 2023/03/22
 
 English:

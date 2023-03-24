@@ -56,7 +56,9 @@ typedef enum : uint32_t
 
 // firmware compile time
 // 固件编译时间
-#define FIRMWARE_COMPILE_TIME "@2023/03/23-20:39:49"
+#define FIRMWARE_COMPILE_TIME "@2023/03/24-12:08:42"
+
+
 
 
 void otaTask(void *);

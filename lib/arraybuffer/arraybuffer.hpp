@@ -251,6 +251,11 @@ private:
         return false;
     }
 
+    bool _setString(const String &data)
+    {
+        return this->_setString(data.c_str());
+    }
+
     /**
      * @brief copy raw data from another area
      * 从另一个buffer拷贝原始数据
@@ -4381,6 +4386,56 @@ public:
     }
 
     /**
+     * @brief encode with Base64
+     * 用 Base64 编码
+     *
+     * @note this function only fits in buffer and string
+     * 仅字符串和二进制数组适用此函数
+     *
+     * @param replaceOrigin replace origin or not; 是否替换原有内容
+     * @return String Base64 encoded
+     */
+    String toBase64(bool replaceOrigin = false)
+    {
+        String b64 = "";
+        if (this->type == ETYPE_STRING || this->type == ETYPE_BUFFER)
+        {
+            b64 = mycrypto::Base64::base64Encode(this->data.p,
+                                                 (this->type == ETYPE_STRING ? this->bufferLength - 1
+                                                                             : this->bufferLength));
+            if (replaceOrigin)
+            {
+                this->_setString(b64);
+            }
+        }
+        return b64;
+    }
+
+    /**
+     * @brief deocde with Base64
+     * 用 Base64 解码
+     *
+     * @note this function only fits in string
+     * 仅字符串适用此函数
+     *
+     * @param replaceOrigin replace origin or not; 是否替换原有内容
+     * @return String Base64 decoded
+     */
+    String fromBase64(bool replaceOrigin = false)
+    {
+        String db64 = "";
+        if (this->type == ETYPE_STRING)
+        {
+            db64 = mycrypto::Base64::base64Decode(this->getString());
+            if (replaceOrigin)
+            {
+                this->_setString(db64);
+            }
+        }
+        return db64;
+    }
+
+    /**
      * @brief calculate SHA256 of content
      *
      * @attention only string and buffer can do this process,
@@ -4394,24 +4449,131 @@ public:
      */
     uint8_t *SHA256()
     {
-        if (this->type != ETYPE_STRING || this->type != ETYPE_BUFFER)
+        if (this->type == ETYPE_STRING || this->type == ETYPE_BUFFER)
         {
-            return nullptr;
-        }
+            uint8_t *buf = new (std::nothrow) uint8_t[32];
+            if (!buf)
+            {
+                return buf;
+            }
+            bzero(buf, 32);
 
-        uint8_t *buf = new (std::nothrow) uint8_t[32];
-        if (!buf)
-        {
+            mycrypto::SHA::sha256((this->type == ETYPE_STRING ? (uint8_t *)(this->c_str()) : (this->data.p)),
+                                  this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength, buf);
+
             return buf;
         }
-        bzero(buf, 32);
-
-        mycrypto::SHA::sha256((this->type == ETYPE_STRING ? (uint8_t *)(this->c_str()) : (this->data.p)),
-                              this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength, buf);
-
-        return buf;
+        return nullptr;
     }
 
+    /**
+     * @brief get SHA256 of content in hex string format;
+     * 获取内容的SHA256, 16进制字符串格式
+     *
+     * @attention will return empty string if type of content are not string and buffer
+     * 如果内容不是字符串和二进制数组会返回空字符串
+     *
+     * @param replaceOrigin will replace origin if set to true
+     * 如果参数为true则会直接替换掉原本的内容
+     *
+     * @return String SHA256 hex string
+     */
+    String getSHA256HexString(bool replaceOrigin = false)
+    {
+        String hash = "";
+        if (this->type == ETYPE_STRING || this->type == ETYPE_BUFFER)
+        {
+            hash = mycrypto::SHA::sha256(
+                this->data.p,
+                this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength);
+
+            if (hash.length() && replaceOrigin)
+            {
+                this->_setString(hash);
+            }
+        }
+
+        return hash;
+    }
+
+    /**
+     * @brief encrypt content with AES-256-CBC
+     * 用AES 256 CBC 加密数据
+     *
+     * @note only string and buffer fit in this function
+     * 只有字符串和二进制数组适用此函数
+     *
+     * @param key key, 32 bytes; 密匙, 32字节
+     * @param iv iv 16 bytes; 初始化向量, 16字节
+     *
+     * @return true success; 成功
+     * @return false failed; 失败
+     */
+    bool AES256_CBC(const char *key, const char *iv)
+    {
+        if ((!strlen(key) || !strlen(iv)) && (this->type == ETYPE_BUFFER || this->type == ETYPE_STRING))
+        {
+            return false;
+        }
+
+        uint32_t outLen = 0;
+
+        uint8_t *cipher = mycrypto::AES::aes256CBCEncrypt(
+            (const uint8_t *)key,
+            (const uint8_t *)iv,
+            this->data.p,
+            (this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength),
+            &outLen);
+
+        if (!outLen && !cipher)
+        {
+            return false;
+        }
+
+        this->_copyBuffer(cipher, outLen);
+        delete cipher;
+        cipher = nullptr;
+
+        return true;
+    }
+
+    /**
+     * @brief encode with AES-256-CBC and replace origin with hex string
+     * 用AES-256-CBC加密，然后替换原有内容为加密结果的16进制字符串
+     *
+     * @param key key, 32 bytes; 密匙, 32字节
+     * @param iv iv 16 bytes; 初始化向量, 16字节
+     *
+     * @return true success; 成功
+     * @return false failed; 失败
+     */
+    bool toAES256CBCHexString(const char *key, const char *iv)
+    {
+        if (!this->AES256_CBC(key, iv))
+        {
+            return false;
+        }
+        return this->_setString(this->getHex());
+    }
+
+    /**
+     * @brief encode with AES-256-CBC and replace origin with base64
+     * 用AES-256-CBC加密，然后替换原有内容为加密结果的base64编码
+     *
+     * @param key key, 32 bytes; 密匙, 32字节
+     * @param iv iv 16 bytes; 初始化向量, 16字节
+     *
+     * @return true success; 成功
+     * @return false failed; 失败
+     */
+    bool toAES256CBCBase64(const char *key, const char *iv)
+    {
+        if (!this->AES256_CBC(key, iv))
+        {
+            return false;
+        }
+        return this->_setString(this->toBase64(true));
+    }
     /**
      * @brief
      * clear buffer
