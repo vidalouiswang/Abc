@@ -58,7 +58,7 @@ function fillCompileTime() {
     let dateString = `${date.getFullYear()}/${M}/${d}-${h}:${m}:${s}`;
 
     //replace firmware compile time
-    globalmanager_h = globalmanager_h.replace(/#define\s*?firmware_compile_time\s*?.+\s/gi, `#define FIRMWARE_COMPILE_TIME "@${dateString}"\r\n`);
+    globalmanager_h = globalmanager_h.replace(/#define\s*?firmware_compile_time\s*?.+\s*?"/gi, `#define FIRMWARE_COMPILE_TIME "@${dateString}"`);
 
     fs.writeFileSync(headerPath, globalmanager_h);
 };

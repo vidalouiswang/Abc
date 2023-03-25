@@ -1,3 +1,13 @@
+2023/03/25
+
+English:
+
+1. Fixed error that script will delete line.
+
+中文:
+
+1. 修复了脚本自动删除行的错误。
+
 2023/03/24
 
 English:
