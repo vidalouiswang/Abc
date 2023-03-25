@@ -1,12 +1,14 @@
-2023/03/25
+2023/03/24
 
 English:
 
-1. Fixed error that script will delete line.
+1. Reduce RAM cost from 24 bytes to 16 bytes of class Element by reorder member sequence.
+2. Remove member "bufferLength", use union data member to hold length of buffer.
 
 中文:
 
-1. 修复了脚本自动删除行的错误。
+1. 通过重新对成员排序，使类 Element 的栈内存消耗由24字节缩小为16字节。
+2. 移除了数据成员 bufferLength，改为使用联合体成员实现同样的功能。
 
 2023/03/24
 

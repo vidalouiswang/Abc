@@ -139,15 +139,24 @@ typedef union
 {
     uint8_t u8;
     int8_t i8;
+    struct
+    {
+        uint8_t *p;            // 4 bytes
+        uint32_t bufferLength; // 4 bytes
+    } buffer;
     uint16_t u16;
     int16_t i16;
     uint32_t u32;
     int32_t i32;
+    float f;
     uint64_t u64 = 0;
     int64_t i64;
-    float f;
     double d;
-    uint8_t *p;
+    struct
+    {
+        uint32_t msb;
+        uint32_t lsb;
+    } e;
 } ElementData;
 
 /**
@@ -171,18 +180,6 @@ private:
     ElementErrorCode err = E_ERROR_NO_ERROR;
 
     /**
-     * @brief hold data
-     * 存储数据
-     */
-    ElementData data;
-
-    /**
-     * @brief indicate length of string or uint8 array
-     * 表示字符串或者二进制数组的长度
-     */
-    uint32_t bufferLength = 0;
-
-    /**
      * @brief almost all data will be make a copy in this class
      * but in some cases, you wouldn't like to copy it
      * so there is a constructor with bool ahead will NOT copy original data
@@ -195,7 +192,13 @@ private:
      * 这个变量用于指示是否需要清理拷贝的buffer
      * 默认是true
      */
-    volatile bool shouldClearBuffer = true;
+    volatile bool copiedBuffer = true;
+
+    /**
+     * @brief hold data
+     * 存储数据
+     */
+    ElementData data;
 
     /**
      * @brief this function could use same object to change its original data type to another
@@ -208,6 +211,7 @@ private:
      */
     void reset(ElementType type)
     {
+        sizeof(Element);
         this->clearBuffer();
 
         // set current type to given type
@@ -273,29 +277,29 @@ private:
         // allocate buffer
         // 分配内存
         length = type == ETYPE_STRING ? length + 1 : length;
-        this->data.p = new (std::nothrow) uint8_t[length];
+        this->data.buffer.p = new (std::nothrow) uint8_t[length];
 
         // check memory allocation
         // 检测内存分配
-        if (!this->data.p)
+        if (!this->data.buffer.p)
         {
             this->type = ETYPE_VOID;
             this->err = E_ERROR_HEAP_FULL;
-            this->bufferLength = 0;
+            this->data.buffer.bufferLength = 0;
             return false;
         }
-        memset(this->data.p, 0, length);
+        memset(this->data.buffer.p, 0, length);
 
         // copy from origin
         // 从原始位置拷贝数据
-        memcpy(this->data.p, buffer + offset, length);
+        memcpy(this->data.buffer.p, buffer + offset, length);
         if (type == ETYPE_STRING)
         {
-            (this->data.p)[length - 1] = 0;
+            (this->data.buffer.p)[length - 1] = 0;
         }
         this->type = type;
-        this->bufferLength = length;
-        this->shouldClearBuffer = true;
+        this->data.buffer.bufferLength = length;
+        this->copiedBuffer = true;
         return true;
     }
 
@@ -411,16 +415,16 @@ public:
             if (!this->_copyBuffer(buffer, bufferLength, offsetInSrc))
             {
                 this->type = ETYPE_VOID;
-                // this->data.p = nullptr;
+                // this->data.buffer.p = nullptr;
                 bzero(&(this->data), sizeof(ElementData));
-                this->bufferLength = 0;
+                this->data.buffer.bufferLength = 0;
             }
         }
         else
         {
             this->reset(ETYPE_BUFFER);
-            this->data.p = buffer;
-            this->shouldClearBuffer = false;
+            this->data.buffer.p = buffer;
+            this->copiedBuffer = false;
         }
     }
 
@@ -695,12 +699,12 @@ public:
             {
                 // return false if length is unequaled of two elements when they stored uint8 array
                 // 如果两个对象都存储了二进制数组但是长度不一样直接返回false
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "type: %d, lengthA: %u, lengthB: %u", obj->getBufferLength(), this->bufferLength);
-                if (obj->getBufferLength() != this->bufferLength)
+                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "type: %d, lengthA: %u, lengthB: %u", obj->getBufferLength(), this->data.buffer.bufferLength);
+                if (obj->getBufferLength() != this->data.buffer.bufferLength)
                 {
                     // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "length not equal, length obj: %d, length this: %d\n string obj: [%s]\n string this: [%s]\n, ",
                     //          obj->getBufferLength(),
-                    //          this->bufferLength,
+                    //          this->data.buffer.bufferLength,
                     //          obj->c_str(),
                     //          this->c_str());
                     return false;
@@ -708,7 +712,7 @@ public:
                 else
                 {
                     // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "string result: %s\n", h ? "true" : "false");
-                    return !strncmp((const char *)(obj->getRawBuffer()), (const char *)(this->getRawBuffer()), this->bufferLength);
+                    return !strncmp((const char *)(obj->getRawBuffer()), (const char *)(this->getRawBuffer()), this->data.buffer.bufferLength);
                 }
             }
             else
@@ -794,9 +798,9 @@ public:
                 {
                     // b is a number
                     if (lessThanB)
-                        return (this->data.p)[0] < b->getUniversalDouble();
+                        return (this->data.buffer.p)[0] < b->getUniversalDouble();
                     else
-                        return (this->data.p)[0] > b->getUniversalDouble();
+                        return (this->data.buffer.p)[0] > b->getUniversalDouble();
                 }
                 else
                 {
@@ -804,9 +808,9 @@ public:
                     if (typeB == ETYPE_BUFFER || typeB == ETYPE_STRING)
                     {
                         if (lessThanB)
-                            return (this->data.p)[0] < b->getRawBuffer()[0];
+                            return (this->data.buffer.p)[0] < b->getRawBuffer()[0];
                         else
-                            return (this->data.p)[0] > b->getRawBuffer()[0];
+                            return (this->data.buffer.p)[0] > b->getRawBuffer()[0];
                     }
                 }
             }
@@ -1016,7 +1020,7 @@ public:
             {
                 return true;
             }
-            else if (this->type == ETYPE_STRING && (this->bufferLength - 1 <= 0))
+            else if (this->type == ETYPE_STRING && (this->data.buffer.bufferLength - 1 <= 0))
             {
                 return true;
             }
@@ -1025,7 +1029,7 @@ public:
                 return false;
             }
         }
-        if (targetLen != (this->bufferLength - 1))
+        if (targetLen != (this->data.buffer.bufferLength - 1))
         {
             return false;
         }
@@ -1477,7 +1481,7 @@ public:
 #else
         if (this->type == ETYPE_STRING)
         {
-            int32_t sizeA = this->bufferLength - 1;
+            int32_t sizeA = this->data.buffer.bufferLength - 1;
             int32_t sizeB = strlen(str);
             return strncmp(this->c_str(), str, sizeA < sizeB ? sizeA : sizeB) < 0;
         }
@@ -1655,7 +1659,7 @@ public:
 #else
         if (this->type == ETYPE_STRING)
         {
-            int32_t sizeA = this->bufferLength - 1;
+            int32_t sizeA = this->data.buffer.bufferLength - 1;
             int32_t sizeB = strlen(str);
             return strncmp(this->c_str(), str, sizeA > sizeB ? sizeA : sizeB) > 0;
         }
@@ -1834,7 +1838,7 @@ public:
 #else
         if (this->type == ETYPE_STRING)
         {
-            int32_t sizeA = this->bufferLength - 1;
+            int32_t sizeA = this->data.buffer.bufferLength - 1;
             int32_t sizeB = strlen(str);
             return strncmp(this->c_str(), str, sizeA <= sizeB ? sizeA : sizeB) <= 0;
         }
@@ -2013,7 +2017,7 @@ public:
 #else
         if (this->type == ETYPE_STRING)
         {
-            int32_t sizeA = this->bufferLength - 1;
+            int32_t sizeA = this->data.buffer.bufferLength - 1;
             int32_t sizeB = strlen(str);
             return strncmp(this->c_str(), str, sizeA >= sizeB ? sizeA : sizeB) >= 0;
         }
@@ -3564,7 +3568,7 @@ public:
     {
         return this->available() &&
                (this->data.i64 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3572,7 +3576,7 @@ public:
     {
         return this->available() &&
                (this->data.u8 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3580,7 +3584,7 @@ public:
     {
         return this->available() &&
                (this->data.i8 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3588,7 +3592,7 @@ public:
     {
         return this->available() &&
                (this->data.u16 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3596,7 +3600,7 @@ public:
     {
         return this->available() &&
                (this->data.i16 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3604,7 +3608,7 @@ public:
     {
         return this->available() &&
                (this->data.u32 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3612,7 +3616,7 @@ public:
     {
         return this->available() &&
                (this->data.i32 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3620,7 +3624,7 @@ public:
     {
         return this->available() &&
                (this->data.u64 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3628,7 +3632,7 @@ public:
     {
         return this->available() &&
                (this->data.i64 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3636,7 +3640,7 @@ public:
     {
         return this->available() &&
                (this->data.f != 0 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3644,7 +3648,7 @@ public:
     {
         return this->available() &&
                (this->data.d != 0 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
 
@@ -3654,7 +3658,7 @@ public:
         ElementType bType = rvalue.getType();
         return this->available() &&
                (this->data.i64 ||
-                (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                (rvalue.getInt64() ||
                 (bLength > (bType == ETYPE_STRING ? 1 : 0)));
     }
@@ -3664,58 +3668,58 @@ public:
     inline bool operator||(const bool &rvalue) const
     {
         return this->available() && (this->data.i64 ||
-                                     (this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0)) || rvalue);
+                                     (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0)) || rvalue);
     }
 
     inline bool operator||(const uint8_t &rvalue) const
     {
         return this->available() && (this->data.u8 ||
-                                     ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+                                     ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     bool operator||(const int8_t &rvalue) const
     {
-        return this->available() && (this->data.i8 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.i8 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const uint16_t &rvalue) const
     {
-        return this->available() && (this->data.u16 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.u16 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const int16_t &rvalue) const
     {
-        return this->available() && (this->data.i16 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.i16 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const uint32_t &rvalue) const
     {
-        return this->available() && (this->data.u32 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.u32 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const int32_t &rvalue) const
     {
-        return this->available() && (this->data.i32 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.i32 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const uint64_t &rvalue) const
     {
-        return this->available() && (this->data.u64 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.u64 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const int64_t &rvalue) const
     {
-        return this->available() && (this->data.i64 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.i64 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const float &rvalue) const
     {
-        return this->available() && (this->data.f != 0 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.f != 0 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const double rvalue) const
     {
-        return this->available() && (this->data.d != 0 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+        return this->available() && (this->data.d != 0 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
 
     inline bool operator||(const Element &rvalue) const
@@ -3724,7 +3728,7 @@ public:
         ElementType bType = rvalue.getType();
         return (this->available() &&
                 rvalue.available()) &&
-               (this->data.i64 || ((this->bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) ||
+               (this->data.i64 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) ||
                 rvalue.getInt64() || ((bLength > (bType == ETYPE_STRING ? 1 : 0))));
     }
 
@@ -3765,9 +3769,9 @@ public:
             case ETYPE_DOUBLE:
                 return this->data.d == 0;
             case ETYPE_STRING:
-                return !((this->data.p)[0]);
+                return !((this->data.buffer.p)[0]);
             case ETYPE_BUFFER:
-                return !this->bufferLength;
+                return !this->data.buffer.bufferLength;
             default:
                 return false;
             }
@@ -3792,15 +3796,15 @@ public:
     {
         if (this->type == ETYPE_BUFFER || this->type == ETYPE_STRING)
         {
-            if (index < this->bufferLength)
+            if (index < this->data.buffer.bufferLength)
             {
                 if (index > 0)
                 {
-                    return (this->data.p)[index];
+                    return (this->data.buffer.p)[index];
                 }
                 else
                 {
-                    return (this->data.p)[this->bufferLength - index];
+                    return (this->data.buffer.p)[this->data.buffer.bufferLength - index];
                 }
             }
         }
@@ -3826,15 +3830,15 @@ public:
             if (index.available())
             {
                 int32_t i = index.getInt32();
-                if (i < this->bufferLength)
+                if (i < this->data.buffer.bufferLength)
                 {
                     if (i > 0)
                     {
-                        return (this->data.p)[i];
+                        return (this->data.buffer.p)[i];
                     }
                     else
                     {
-                        return (this->data.p)[this->bufferLength - i];
+                        return (this->data.buffer.p)[this->data.buffer.bufferLength - i];
                     }
                 }
             }
@@ -4032,7 +4036,7 @@ public:
     c_str() const
     {
         if (this->type == ETYPE_STRING)
-            return (const char *)(this->data.p);
+            return (const char *)(this->data.buffer.p);
         return "";
     }
 
@@ -4045,8 +4049,8 @@ public:
     inline int indexOf(const char &target) const
     {
         if (this->type == ETYPE_STRING)
-            for (uint32_t i = 0; i < this->bufferLength; ++i)
-                if (target == (this->data.p)[i])
+            for (uint32_t i = 0; i < this->data.buffer.bufferLength; ++i)
+                if (target == (this->data.buffer.p)[i])
                     return i;
 
         return -2;
@@ -4061,8 +4065,8 @@ public:
     inline int lastIndexOf(const char &target) const
     {
         if (this->type == ETYPE_STRING)
-            for (uint32_t i = this->bufferLength - 1; i >= 0; --i)
-                if (target == (this->data.p)[i])
+            for (uint32_t i = this->data.buffer.bufferLength - 1; i >= 0; --i)
+                if (target == (this->data.buffer.p)[i])
                     return i;
         return -2;
     }
@@ -4077,7 +4081,7 @@ public:
 
         // clear buffer if buffer is copied from other places
         // 如果buffer是从其他位置拷贝的就清除buffer
-        if (this->shouldClearBuffer)
+        if (this->copiedBuffer)
         {
             this->clearBuffer();
         }
@@ -4132,7 +4136,7 @@ public:
     inline String getString() const
     {
         // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "get string");
-        return (this->type == ETYPE_STRING) ? (this->data.p ? (String((const char *)this->data.p)) : (String("")))
+        return (this->type == ETYPE_STRING) ? (this->data.buffer.p ? (String((const char *)this->data.buffer.p)) : (String("")))
                                             : ((this->type == ETYPE_BUFFER) ? (this->getHex()) : (String("")));
     }
 
@@ -4155,8 +4159,8 @@ public:
         if (this->type == ETYPE_BUFFER)
         {
             if (outLen)
-                (*outLen) = this->bufferLength;
-            return (uint8_t *)(this->data.p);
+                (*outLen) = this->data.buffer.bufferLength;
+            return (uint8_t *)(this->data.buffer.p);
         }
         else
         {
@@ -4178,7 +4182,7 @@ public:
     bool convertHexStringIntoUint8Array()
     {
         // check type and length 检查类型和长度
-        if (this->type != ETYPE_STRING || (!this->data.p) || (!this->bufferLength))
+        if (this->type != ETYPE_STRING || (!this->data.buffer.p) || (!this->data.buffer.bufferLength))
             return false;
 
         // get original length
@@ -4200,8 +4204,8 @@ public:
         // 开始转换
         for (uint32_t i = 0, k = 0; i < originalLength; i += 2)
         {
-            sscanf((const char *)((this->data.p) + i), "%02x", &tmp);
-            (this->data.p)[k] = (uint8_t)tmp;
+            sscanf((const char *)((this->data.buffer.p) + i), "%02x", &tmp);
+            (this->data.buffer.p)[k] = (uint8_t)tmp;
             ++k;
         }
 
@@ -4209,7 +4213,7 @@ public:
         this->type = ETYPE_BUFFER;
 
         // modify length 修改长度
-        this->bufferLength = len;
+        this->data.buffer.bufferLength = len;
 
         return true;
     }
@@ -4225,9 +4229,9 @@ public:
     inline uint8_t *getRawBuffer(uint32_t *outLen = nullptr) const
     {
         if (outLen)
-            (*outLen) = this->bufferLength;
+            (*outLen) = this->data.buffer.bufferLength;
 
-        return (this->data.p);
+        return (this->data.buffer.p);
     }
 
     /**
@@ -4238,7 +4242,7 @@ public:
      *
      * @return length of uint8 array 存储的数组的长度
      */
-    inline uint32_t getU8aLen() const { return this->type == ETYPE_BUFFER ? this->bufferLength : 0; }
+    inline uint32_t getU8aLen() const { return this->type == ETYPE_BUFFER ? this->data.buffer.bufferLength : 0; }
 
     /**
      * @brief more simply way to get number, return int64_t
@@ -4335,7 +4339,7 @@ public:
 
         // define return length( length of uint8 array * 2 + 1('\0'))
         // 定义返回长度(字节数组的长度 * 2 + 1('\0'))
-        uint32_t length = (this->bufferLength * 2) + 1;
+        uint32_t length = (this->data.buffer.bufferLength * 2) + 1;
 
         // define buffer 定义buffer
         // attention: this buffer is decleared and defined in stack
@@ -4353,9 +4357,9 @@ public:
 
         // genereate hex string
         // 生成16进制字符串
-        for (uint32_t i = 0; i < this->bufferLength; i++)
+        for (uint32_t i = 0; i < this->data.buffer.bufferLength; i++)
         {
-            sprintf(buf + (i * 2), hexCase, (this->data.p)[i]);
+            sprintf(buf + (i * 2), hexCase, (this->data.buffer.p)[i]);
         }
 
         return String(buf);
@@ -4369,7 +4373,7 @@ public:
      */
     uint64_t getRawBufferLength() const
     {
-        return this->bufferLength;
+        return this->data.buffer.bufferLength;
     }
 
     /**
@@ -4382,7 +4386,7 @@ public:
      */
     uint32_t getBufferLength(bool includeHeader = false) const
     {
-        return this->bufferLength;
+        return this->data.buffer.bufferLength;
     }
 
     /**
@@ -4400,9 +4404,9 @@ public:
         String b64 = "";
         if (this->type == ETYPE_STRING || this->type == ETYPE_BUFFER)
         {
-            b64 = mycrypto::Base64::base64Encode(this->data.p,
-                                                 (this->type == ETYPE_STRING ? this->bufferLength - 1
-                                                                             : this->bufferLength));
+            b64 = mycrypto::Base64::base64Encode(this->data.buffer.p,
+                                                 (this->type == ETYPE_STRING ? this->data.buffer.bufferLength - 1
+                                                                             : this->data.buffer.bufferLength));
             if (replaceOrigin)
             {
                 this->_setString(b64);
@@ -4458,8 +4462,8 @@ public:
             }
             bzero(buf, 32);
 
-            mycrypto::SHA::sha256((this->type == ETYPE_STRING ? (uint8_t *)(this->c_str()) : (this->data.p)),
-                                  this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength, buf);
+            mycrypto::SHA::sha256((this->type == ETYPE_STRING ? (uint8_t *)(this->c_str()) : (this->data.buffer.p)),
+                                  this->type == ETYPE_STRING ? this->data.buffer.bufferLength - 1 : this->data.buffer.bufferLength, buf);
 
             return buf;
         }
@@ -4484,8 +4488,8 @@ public:
         if (this->type == ETYPE_STRING || this->type == ETYPE_BUFFER)
         {
             hash = mycrypto::SHA::sha256(
-                this->data.p,
-                this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength);
+                this->data.buffer.p,
+                this->type == ETYPE_STRING ? this->data.buffer.bufferLength - 1 : this->data.buffer.bufferLength);
 
             if (hash.length() && replaceOrigin)
             {
@@ -4521,8 +4525,8 @@ public:
         uint8_t *cipher = mycrypto::AES::aes256CBCEncrypt(
             (const uint8_t *)key,
             (const uint8_t *)iv,
-            this->data.p,
-            (this->type == ETYPE_STRING ? this->bufferLength - 1 : this->bufferLength),
+            this->data.buffer.p,
+            (this->type == ETYPE_STRING ? this->data.buffer.bufferLength - 1 : this->data.buffer.bufferLength),
             &outLen);
 
         if (!outLen && !cipher)
@@ -4581,18 +4585,18 @@ public:
      */
     void clearBuffer()
     {
-        // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "buffer length: %lu", this->bufferLength);
-        if (this->data.p && this->bufferLength)
+        // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "buffer length: %lu", this->data.buffer.bufferLength);
+        if ((this->type == ETYPE_STRING || this->type == ETYPE_BUFFER) && this->data.buffer.p && this->data.buffer.bufferLength)
         {
 
             // clear length 归零长度
-            this->bufferLength = 0;
+            // this->data.buffer.bufferLength = 0;
 
             // clear buffer 清除buffer
-            delete this->data.p;
+            delete this->data.buffer.p;
 
             // reset pointer 重置指针
-            // this->data.p = nullptr;
+            // this->data.buffer.p = nullptr;
         }
         bzero(&(this->data), sizeof(ElementData));
     }
