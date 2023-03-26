@@ -14,7 +14,7 @@ Provider::Provider(uint16_t id,
     this->settings |= (lengthOfArguments & (uint8_t)0b00000111);
 }
 
-uint8_t *Provider::getBuffer(uint64_t *outLen)
+uint8_t *Provider::getBuffer(uint32_t *outLen)
 {
     std::vector<Element *> container;
     container.push_back(new Element(this->id));

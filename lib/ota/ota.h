@@ -64,7 +64,7 @@ private:
 
     // for request ota data block from server
     // 用于向服务器请求ota数据块
-    uint64_t bufferOutLen = 0;
+    uint32_t bufferOutLen = 0;
 
     // offset of data written to ota partition
     // 向ota分区写入的偏移量

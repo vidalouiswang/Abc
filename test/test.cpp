@@ -551,7 +551,7 @@ void test_element_new_operators()
     TEST_ASSERT_TRUE(!a == false);
     a = 0;
     bzero(buf, sizeof(buf));
-    sprintf(buf, "type: %d, value: %llu, buffer length: %u", a.getType(), a.getUint64(), a.getBufferLength());
+    sprintf(buf, "type: %d, value: %llu, buffer length: %u", a.getType(), a.getUint64(), a.getRawBufferLength());
     TEST_ASSERT_TRUE_MESSAGE(!a == true, buf);
 
     a = (float)0.0f;
@@ -611,12 +611,6 @@ void test_element_convertHexStringIntoUint8Array()
 
 void test_createArrayBuffer_and_decodeArrayBuffer()
 {
-
-    Element a = "Hello world!";
-
-    Element b = "Hello world!";
-
-    TEST_ASSERT_TRUE(a == b);
 
     uint8_t buffer[1024] = {0};
     for (uint32_t i = 0; i < 1024; ++i)

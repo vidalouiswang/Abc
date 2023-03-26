@@ -153,7 +153,7 @@ void GlobalManager::buildProvidersBuffer(bool buildAll)
     std::vector<Element *> providerBufferContainer;
 
     uint8_t *providerBuffer = nullptr;
-    uint64_t providerOutLen = 0;
+    uint32_t providerOutLen = 0;
 
     for (
         std::vector<Provider *>::iterator it = this->providers->begin();
@@ -350,7 +350,7 @@ void GlobalManager::executeCommand(
 
     if ((output->size() == 7 || output->size() == 6) &&
         output->at(4)->getType() == ETYPE_BUFFER &&
-        output->at(4)->getU8aLen() == SHA_LENGTH &&
+        output->at(4)->getRawBufferLength() == SHA_LENGTH &&
         this->authorize(output->at(4), output->at(3), &isAdmin))
     {
         ESP_LOGD(SYSTEM_DEBUG_HEADER, "authorized");
@@ -402,7 +402,7 @@ void GlobalManager::executeCommand(
                 uint8_t *buffer = mycrypto::AES::aes256CBCDecrypt(key,
                                                                   iv,
                                                                   output->at(6)->getUint8Array(),
-                                                                  output->at(6)->getU8aLen(),
+                                                                  output->at(6)->getRawBufferLength(),
                                                                   &aesOutLen);
 
                 if (aesOutLen && buffer)
@@ -414,7 +414,7 @@ void GlobalManager::executeCommand(
             else
             {
                 arguments = ArrayBuffer::decodeArrayBuffer(output->at(6)->getUint8Array(),
-                                                           output->at(6)->getU8aLen());
+                                                           output->at(6)->getRawBufferLength());
             }
         }
         else
@@ -438,7 +438,7 @@ void GlobalManager::executeCommand(
             if (result->available())
             {
                 std::vector<Element *> container = {result};
-                uint64_t outLen = 0;
+                uint32_t outLen = 0;
                 uint8_t *buffer = ArrayBuffer::createArrayBuffer(&container, &outLen);
                 delete result;
 
@@ -659,8 +659,8 @@ void GlobalManager::internalLocalMsgHandler(
             // for remote management (admin)
             if (output->at(4)->getType() == ETYPE_BUFFER && output->at(5)->getType() == ETYPE_BUFFER)
             {
-                (*(db)("userName"))(output->at(4)->getUint8Array(), output->at(4)->getU8aLen());
-                (*(db)("password"))(output->at(5)->getUint8Array(), output->at(5)->getU8aLen());
+                (*(db)("userName"))(output->at(4)->getUint8Array(), output->at(4)->getRawBufferLength());
+                (*(db)("password"))(output->at(5)->getUint8Array(), output->at(5)->getRawBufferLength());
             }
 
             // websocket information(remote)
@@ -1079,7 +1079,7 @@ void GlobalManager::internalRemoteMsgHandler(
     if (response->size())
     {
         // create buffer
-        uint64_t outLen = 0;
+        uint32_t outLen = 0;
         uint8_t *buffer = ArrayBuffer::createArrayBuffer(response, &outLen);
 
         if (buffer && outLen)
@@ -1121,7 +1121,7 @@ void GlobalManager::webSerial(Element *msg)
 
         this->_webSerialContainer->push_back(msg);
 
-        uint64_t outLen = 0;
+        uint32_t outLen = 0;
 
         uint8_t *buffer = ArrayBuffer::createArrayBuffer(this->_webSerialContainer, &outLen);
 
@@ -1201,7 +1201,7 @@ bool GlobalManager::_sendBundle(String frinedID, T command, uint16_t providerID,
     }
 
     // prepare generate buffer
-    uint64_t outLen = 0;
+    uint32_t outLen = 0;
 
     // generate buffer
     uint8_t *buffer = ArrayBuffer::createArrayBuffer(request, &outLen);
@@ -1513,7 +1513,7 @@ void GlobalManager::initializeBasicInformation()
             {
                 if (payload->getRawBufferLength())
                 {
-                    Serial.write(payload->getUint8Array(), payload->getU8aLen());
+                    Serial.write(payload->getUint8Array(), payload->getRawBufferLength());
                 }
                 else
                 {
@@ -2211,7 +2211,7 @@ bool GlobalManager::authorize(
 
     // check length of data
     // 检查数据长度
-    if (remoteHash->getU8aLen() != SHA_LENGTH)
+    if (remoteHash->getRawBufferLength() != SHA_LENGTH)
         return false;
 
     // check timestamp

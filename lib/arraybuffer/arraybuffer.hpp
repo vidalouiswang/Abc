@@ -700,7 +700,7 @@ public:
                 // return false if length is unequaled of two elements when they stored uint8 array
                 // 如果两个对象都存储了二进制数组但是长度不一样直接返回false
                 // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "type: %d, lengthA: %u, lengthB: %u", obj->getBufferLength(), this->data.buffer.bufferLength);
-                if (obj->getBufferLength() != this->data.buffer.bufferLength)
+                if (obj->getRawBufferLength() != this->data.buffer.bufferLength)
                 {
                     // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "length not equal, length obj: %d, length this: %d\n string obj: [%s]\n string this: [%s]\n, ",
                     //          obj->getBufferLength(),
@@ -3654,7 +3654,7 @@ public:
 
     inline bool operator&&(const Element &rvalue) const
     {
-        uint32_t bLength = rvalue.getBufferLength();
+        uint32_t bLength = rvalue.getRawBufferLength();
         ElementType bType = rvalue.getType();
         return this->available() &&
                (this->data.i64 ||
@@ -3724,7 +3724,7 @@ public:
 
     inline bool operator||(const Element &rvalue) const
     {
-        uint32_t bLength = rvalue.getBufferLength();
+        uint32_t bLength = rvalue.getRawBufferLength();
         ElementType bType = rvalue.getType();
         return (this->available() &&
                 rvalue.available()) &&
@@ -4376,18 +4376,7 @@ public:
         return this->data.buffer.bufferLength;
     }
 
-    /**
-     * @brief this function is for createArrayBuffer using
-     * 这个函数是给createArrayBuffer用的
-     *
-     * @param includeHeader include length of header 是否带有头部长度
-     *
-     * @return length 长度
-     */
-    uint32_t getBufferLength(bool includeHeader = false) const
-    {
-        return this->data.buffer.bufferLength;
-    }
+    
 
     /**
      * @brief encode with Base64
@@ -4625,7 +4614,7 @@ public:
      * @return generated pointer to buffer 生成的二进制数组指针
      */
     static uint8_t *createArrayBuffer(Elements *elements,
-                                      uint64_t *outLen)
+                                      uint32_t *outLen)
     {
         // check vector size
         // 检查容器大小
@@ -4952,7 +4941,7 @@ public:
 
         // declare a variable for generate function input
         // 声明生成函数所需要传入的长度变量
-        uint64_t outLen = 0;
+        uint32_t outLen = 0;
 
         // generate buffer
         // 生成数组
@@ -4988,7 +4977,7 @@ public:
      * @return a vector contains pointers of Element 一个装有Element指针的vector容器
      */
     static std::vector<Element *> *decodeArrayBuffer(uint8_t *data,
-                                                     uint64_t length,
+                                                     uint32_t length,
                                                      bool onlyCopyPointer = false)
     {
         // check pointer and length
@@ -5288,7 +5277,7 @@ public:
      */
     static void decodeArrayBuffer(decodeArrayBufferCallback callback,
                                   uint8_t *data,
-                                  uint64_t length)
+                                  uint32_t length)
     {
         // check pointer and length
         // 检查指针和长度

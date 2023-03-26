@@ -1,3 +1,15 @@
+2023/03/26
+
+English:
+
+1. Remove redundant function "getU8ALen" and "getBufferLength" of class Element, use "getRawBufferLength" to instead.
+2. Replace data type from uint64_t to uint32_t of static functions in class ArrayBuffer.
+
+中文: 
+
+1. 移除了冗余的成员函数 "getU8ALen" 和 "getBufferLength"，使用 "getRawBufferLength" 来代替。
+2. 类 ArrayBuffer 中的静态函数的数据类型由 uint64_t 改为 uint32_t。
+
 2023/03/24
 
 English:

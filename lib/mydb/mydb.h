@@ -166,7 +166,7 @@ public:
      * @param buffer pointer to buffer pointer 指向缓存的二级指针
      * @param outLen length of output buffer 输出数据的长度
      */
-    void dump(uint8_t **buffer, uint64_t *outLen);
+    void dump(uint8_t **buffer, uint32_t *outLen);
 
     /**
      * @brief create a backup file and flush all data into flash, attention attached

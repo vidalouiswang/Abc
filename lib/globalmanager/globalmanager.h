@@ -56,7 +56,7 @@ typedef enum : uint32_t
 
 // firmware compile time
 // 固件编译时间
-#define FIRMWARE_COMPILE_TIME "@2023/03/25-21:02:14"
+#define FIRMWARE_COMPILE_TIME "@2023/03/26-19:30:09"
 
 void otaTask(void *);
 void APScheduler(void *t);
@@ -362,7 +362,7 @@ private:
      * @brief length of register buffer
      * 注册用缓存的长度
      */
-    uint64_t lengthOfRegisterBuffer = 0;
+    uint32_t lengthOfRegisterBuffer = 0;
 
     /**
      * @brief generate register buffer
@@ -654,7 +654,7 @@ public:
      * @brief buffer length of all providers
      * 全部provider的缓存的长度
      */
-    uint64_t bufferProvidersLength = 0;
+    uint32_t bufferProvidersLength = 0;
 
     /**
      * @brief set wifi connection status
@@ -722,7 +722,7 @@ public:
      * @brief buffer length of other users
      * 其他用户的缓存的长度
      */
-    uint64_t lengthOfUsersBuffer = 0;
+    uint32_t lengthOfUsersBuffer = 0;
 
     /**
      * @brief get websocket client connected for remote

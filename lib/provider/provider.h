@@ -127,7 +127,7 @@ public:
      * @param outLen output length 输出buffer的长度
      * @return uint8_t* buffer 缓存
      */
-    uint8_t *getBuffer(uint64_t *outLen);
+    uint8_t *getBuffer(uint32_t *outLen);
 };
 
 #endif

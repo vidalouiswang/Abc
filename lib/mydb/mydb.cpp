@@ -123,7 +123,7 @@ bool MyDB::makeBackup()
     return false;
 }
 
-void MyDB::dump(uint8_t **buffer, uint64_t *outLen)
+void MyDB::dump(uint8_t **buffer, uint32_t *outLen)
 {
     (*outLen) = 0;
 
@@ -165,7 +165,7 @@ bool MyDB::flush()
         ESP_LOGD(MYDB_DEBUG_HEADER, "unable to create backup");
     }
     uint8_t *buffer = nullptr;
-    uint64_t outLen = 0;
+    uint32_t outLen = 0;
 
     this->dump(&buffer, &outLen);
     ESP_LOGD(MYDB_DEBUG_HEADER, "dump buffer created, length: %llu", outLen);

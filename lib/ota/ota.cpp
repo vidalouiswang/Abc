@@ -111,9 +111,9 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
                     1 == sha256, uint8 array, 32 bytes
                     2 == data, uint8 array
                 */
-                ESP_LOGD(OTA_DEBUG_HEADER, "block arrived, length: %d\n", output->at(2)->getU8aLen());
+                ESP_LOGD(OTA_DEBUG_HEADER, "block arrived, length: %d\n", output->at(2)->getRawBufferLength());
 
-                if (!output->at(OFFSET_OTA_DATA)->getU8aLen())
+                if (!output->at(OFFSET_OTA_DATA)->getRawBufferLength())
                 {
                     // empty block means all data has been written
                     // OTA update finished
@@ -148,7 +148,7 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
                 // calc hash of data block
                 String localHash = mycrypto::SHA::sha256(
                     output->at(OFFSET_OTA_DATA)->getUint8Array(),
-                    output->at(OFFSET_OTA_DATA)->getU8aLen());
+                    output->at(OFFSET_OTA_DATA)->getRawBufferLength());
 
                 if (localHash == output->at(OFFSET_OTA_HASH)->getString())
                 {
@@ -157,12 +157,12 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
                         esp_ota_write_with_offset(
                             this->handle,                                               // ota partition handle
                             (const void *)output->at(OFFSET_OTA_DATA)->getUint8Array(), // data buffer
-                            output->at(OFFSET_OTA_DATA)->getU8aLen(),                   // length of buffer
+                            output->at(OFFSET_OTA_DATA)->getRawBufferLength(),                   // length of buffer
                             this->writeOffset                                           // offset
                             ))
                     {
                         ++this->index;
-                        this->writeOffset += output->at(OFFSET_OTA_DATA)->getU8aLen();
+                        this->writeOffset += output->at(OFFSET_OTA_DATA)->getRawBufferLength();
                         this->clearBuffer(output);
                         this->fetchNext();
                     }
