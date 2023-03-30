@@ -62,6 +62,7 @@
 
 typedef enum : uint8_t
 {
+    MARK_VOID = 0,
     MARK_UINT8 = 0x80,
     MARK_UINT16 = 0x81,
     MARK_UINT32 = 0x82,
@@ -201,25 +202,6 @@ private:
     ElementData data;
 
     /**
-     * @brief this function could use same object to change its original data type to another
-     * it will clean all buffer(if exists)
-     * 这个函数用于给当前对象赋值另一种类型的数据
-     * 如果当前对象存储了字符串或者拷贝模式的二进制数组
-     * 那么就会清理掉缓存
-     *
-     * @param type new type 新的类型
-     */
-    void reset(ElementType type)
-    {
-        sizeof(Element);
-        this->clearBuffer();
-
-        // set current type to given type
-        // 设定当前类型为给定的类型
-        this->type = type;
-    }
-
-    /**
      * @brief set string buffer
      * 设置字符串
      *
@@ -241,6 +223,7 @@ private:
             }
             if (length)
             {
+                ++length;
                 // clear buffer if current object already stored data
                 // 如果当前对象已经存储了其他数据会清除掉其他数据
                 this->reset(ETYPE_STRING);
@@ -276,7 +259,6 @@ private:
     {
         // allocate buffer
         // 分配内存
-        length = type == ETYPE_STRING ? length + 1 : length;
         this->data.buffer.p = new (std::nothrow) uint8_t[length];
 
         // check memory allocation
@@ -293,12 +275,14 @@ private:
         // copy from origin
         // 从原始位置拷贝数据
         memcpy(this->data.buffer.p, buffer + offset, length);
+        // Serial.printf("copy data length: %lu, offset: %lu\n", length, offset);
         if (type == ETYPE_STRING)
         {
             (this->data.buffer.p)[length - 1] = 0;
         }
         this->type = type;
         this->data.buffer.bufferLength = length;
+        // Serial.printf("this->data.buffer.bufferLength: %lu\n", this->data.buffer.bufferLength);
         this->copiedBuffer = true;
         return true;
     }
@@ -412,7 +396,7 @@ public:
     {
         if (copyOrigin)
         {
-            if (!this->_copyBuffer(buffer, bufferLength, offsetInSrc))
+            if (!this->_copyBuffer(buffer, bufferLength, offsetInSrc, ETYPE_BUFFER))
             {
                 this->type = ETYPE_VOID;
                 // this->data.buffer.p = nullptr;
@@ -424,6 +408,7 @@ public:
         {
             this->reset(ETYPE_BUFFER);
             this->data.buffer.p = buffer;
+            this->data.buffer.bufferLength = bufferLength;
             this->copiedBuffer = false;
         }
     }
@@ -2191,7 +2176,7 @@ public:
                     {
                         char buf[32] = {0};
                         sprintf(buf,
-                                (typeB == ETYPE_UINT64 ? "%llu" : "%ld"),
+                                (typeB == ETYPE_UINT64 ? "%llu" : "%lld"),
                                 (typeB == ETYPE_UINT64 ? rvalue.getUint64() : rvalue.getInt64()));
                         tmp = this->getString() + String(buf);
                     }
@@ -2792,10 +2777,14 @@ public:
     {
         if (str.length())
         {
-            if (this->type == ETYPE_STRING)
-            {
-                this->_setString((this->getString() + str).c_str());
-            }
+            // if (this->type == ETYPE_STRING)
+            //{
+            // comment:
+            //  if Element a = ""; a.getType() == ETYPE_VOID
+            //  should modify to ETYPE_STRING
+            //  todo, in _setString
+            this->_setString((this->getString() + str).c_str());
+            //}
         }
         return this->c_str();
     }
@@ -4371,12 +4360,19 @@ public:
      *
      * @return length of raw uint8 array 缓存长度
      */
-    uint64_t getRawBufferLength() const
+    uint32_t getRawBufferLength() const
     {
         return this->data.buffer.bufferLength;
     }
 
-    
+    bool isStringAvailable() const { return this->type == ETYPE_STRING && this->data.buffer.bufferLength > 1; }
+
+    bool isBufferAvailable(uint32_t equalLength = 0) const
+    {
+        return this->type == ETYPE_BUFFER &&
+               this->data.buffer.p &&
+               (!equalLength ? this->data.buffer.bufferLength > 0 : this->data.buffer.bufferLength == equalLength);
+    }
 
     /**
      * @brief encode with Base64
@@ -4575,7 +4571,9 @@ public:
     void clearBuffer()
     {
         // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "buffer length: %lu", this->data.buffer.bufferLength);
-        if ((this->type == ETYPE_STRING || this->type == ETYPE_BUFFER) && this->data.buffer.p && this->data.buffer.bufferLength)
+        if ((this->type == ETYPE_STRING || this->type == ETYPE_BUFFER) &&
+            this->data.buffer.p &&
+            this->data.buffer.bufferLength)
         {
 
             // clear length 归零长度
@@ -4588,6 +4586,261 @@ public:
             // this->data.buffer.p = nullptr;
         }
         bzero(&(this->data), sizeof(ElementData));
+    }
+
+    /**
+     * @brief this function could use same object to change its original data type to another
+     * it will clean all buffer(if exists)
+     * 这个函数用于给当前对象赋值另一种类型的数据
+     * 如果当前对象存储了字符串或者拷贝模式的二进制数组
+     * 那么就会清理掉缓存
+     *
+     * @param type new type 新的类型
+     */
+    void reset(ElementType type)
+    {
+        this->clearBuffer();
+
+        // set current type to given type
+        // 设定当前类型为给定的类型
+        this->type = type;
+    }
+
+#ifdef ARRAY_BUFFER_DEBUG_ON
+    char *debugShow() const
+    {
+        char *buf = new char[1024];
+        bzero(buf, 1024);
+        switch (this->type)
+        {
+        case ETYPE_UINT8:
+        case ETYPE_INT8:
+        case ETYPE_UINT16:
+        case ETYPE_INT16:
+        case ETYPE_UINT32:
+        case ETYPE_INT32:
+        case ETYPE_FLOAT:
+        case ETYPE_UINT64:
+        case ETYPE_INT64:
+        case ETYPE_DOUBLE:
+            sprintf(buf, "%llf\n", this->getUniversalDouble());
+            break;
+        case ETYPE_STRING:
+            sprintf(buf, "%s\n", this->c_str());
+            break;
+        case ETYPE_BUFFER:
+            sprintf(buf, "[buffer length: %lu\n0x", this->data.buffer.bufferLength);
+            for (int i = 0; i < this->data.buffer.bufferLength; ++i)
+            {
+                sprintf(buf + (i * 2), "%02x", (this->data.buffer.p)[i]);
+            }
+            sprintf(buf + (this->data.buffer.bufferLength * 2), "\n]");
+        }
+        return buf;
+    }
+#endif
+
+    uint32_t getOuterBufferLength() const
+    {
+        switch (this->type)
+        {
+        case ETYPE_UINT8:
+        case ETYPE_INT8:
+            return 2;
+        case ETYPE_UINT16:
+        case ETYPE_INT16:
+            return 3;
+        case ETYPE_UINT32:
+        case ETYPE_INT32:
+        case ETYPE_FLOAT:
+            return 5;
+        case ETYPE_UINT64:
+        case ETYPE_INT64:
+        case ETYPE_DOUBLE:
+            return 9;
+        case ETYPE_STRING:
+        case ETYPE_BUFFER:
+            return this->data.buffer.bufferLength + 5;
+        default:
+            return 0;
+        }
+    }
+    EncodedBufferMark getMark() const
+    {
+        switch (this->type)
+        {
+        case ETYPE_UINT8:
+            return MARK_UINT8;
+        case ETYPE_INT8:
+            return MARK_INT8;
+        case ETYPE_UINT16:
+            return MARK_UINT16;
+        case ETYPE_INT16:
+            return MARK_INT16;
+        case ETYPE_UINT32:
+            return MARK_UINT32;
+        case ETYPE_INT32:
+            return MARK_INT32;
+        case ETYPE_FLOAT:
+            return MARK_FLOAT;
+        case ETYPE_UINT64:
+            return MARK_UINT64;
+        case ETYPE_INT64:
+            return MARK_INT64;
+        case ETYPE_DOUBLE:
+            return MARK_DOUBLE;
+        case ETYPE_STRING:
+            return MARK_STRING;
+        case ETYPE_BUFFER:
+            return MARK_BUFFER;
+        }
+        return MARK_VOID;
+    }
+
+    ElementType markToType(EncodedBufferMark mark)
+    {
+        switch (mark)
+        {
+        case MARK_UINT8:
+            return ETYPE_UINT8;
+        case MARK_INT8:
+            return ETYPE_INT8;
+        case MARK_UINT16:
+            return ETYPE_UINT16;
+        case MARK_INT16:
+            return ETYPE_INT16;
+        case MARK_UINT32:
+            return ETYPE_UINT32;
+        case MARK_INT32:
+            return ETYPE_INT32;
+        case MARK_FLOAT:
+            return ETYPE_FLOAT;
+        case MARK_UINT64:
+            return ETYPE_UINT64;
+        case MARK_INT64:
+            return ETYPE_INT64;
+        case MARK_DOUBLE:
+            return ETYPE_DOUBLE;
+        case MARK_STRING:
+            return ETYPE_STRING;
+        case MARK_BUFFER:
+            return ETYPE_BUFFER;
+        }
+        return ETYPE_VOID;
+    }
+
+    bool pack(uint8_t *buffer, uint32_t *offset) const
+    {
+        uint32_t bufferLength = this->getOuterBufferLength();
+
+        if (!bufferLength)
+            return false;
+
+        uint32_t dataLen = 0;
+        uint64_t c = 0;
+
+        buffer[(*offset)] = this->getMark();
+        ++(*offset); // skip mark
+
+        switch (this->type)
+        {
+        case ETYPE_UINT8:
+        case ETYPE_INT8:
+            memcpy(buffer + (*offset), (&(this->data.u8)), 1);
+            (*offset) += 1;
+            break;
+        case ETYPE_UINT16:
+        case ETYPE_INT16:
+            memcpy(buffer + (*offset), (&(this->data.u16)), 2);
+            (*offset) += 2;
+            break;
+        case ETYPE_UINT32:
+        case ETYPE_INT32:
+            memcpy(buffer + (*offset), (&(this->data.u32)), 4);
+            (*offset) += 4;
+            break;
+        case ETYPE_FLOAT:
+            memcpy(buffer + (*offset), (&(this->data.f)), 4);
+            (*offset) += 4;
+            break;
+        case ETYPE_UINT64:
+        case ETYPE_INT64:
+            memcpy(buffer + (*offset), (&(this->data.u64)), 8);
+            (*offset) += 8;
+            break;
+        case ETYPE_DOUBLE:
+            memcpy(buffer + (*offset), (&(this->data.d)), 8);
+            (*offset) += 8;
+            break;
+        case ETYPE_STRING:
+        case ETYPE_BUFFER:
+            dataLen = this->data.buffer.bufferLength;
+            memcpy(buffer + (*offset), (&(dataLen)), 4);
+            (*offset) += 4;
+            memcpy(buffer + (*offset), this->data.buffer.p, dataLen);
+            (*offset) += dataLen;
+            break;
+        }
+
+        return true;
+    }
+
+    int32_t setFromOuterBuffer(uint8_t *buffer, uint32_t offset, uint32_t length)
+    {
+        if (!buffer)
+            return -2;
+
+        if (buffer[offset] < 0x80)
+            return -2;
+
+        if (length < 2)
+            return -2;
+
+        EncodedBufferMark mark = (EncodedBufferMark)buffer[offset++];
+
+        uint8_t *internalBuffer = (uint8_t *)(&(this->data));
+
+        bzero(internalBuffer, sizeof(ElementData));
+
+        this->reset(this->markToType(mark));
+
+        uint32_t dataLen;
+
+        switch (mark)
+        {
+        case MARK_UINT8:
+        case MARK_INT8:
+            memcpy(&(this->data.u8), buffer + offset, 1);
+            return 2;
+        case MARK_UINT16:
+        case MARK_INT16:
+            memcpy(&(this->data.u16), buffer + offset, 2);
+            return 3;
+        case MARK_UINT32:
+        case MARK_INT32:
+            memcpy(&(this->data.u32), buffer + offset, 4);
+            return 5;
+        case MARK_FLOAT:
+            memcpy(&(this->data.f), buffer + offset, 4);
+            return 5;
+        case MARK_UINT64:
+        case MARK_INT64:
+            memcpy(&(this->data.u64), buffer + offset, 8);
+            return 9;
+        case MARK_DOUBLE:
+            memcpy(&(this->data.d), buffer + offset, 8);
+            return 9;
+        case MARK_STRING:
+            memcpy(&dataLen, buffer + offset, 4);
+            this->_copyBuffer(buffer, dataLen, offset + 4, ETYPE_STRING);
+            return dataLen + 5;
+        case MARK_BUFFER:
+            memcpy(&dataLen, buffer + offset, 4);
+            this->_copyBuffer(buffer, dataLen, offset + 4, ETYPE_BUFFER);
+            return dataLen + 5;
+        }
+
+        return dataLen;
     }
 };
 
@@ -4616,87 +4869,24 @@ public:
     static uint8_t *createArrayBuffer(Elements *elements,
                                       uint32_t *outLen)
     {
+        (*outLen) = 0;
         // check vector size
         // 检查容器大小
         if (elements->size() <= 0)
         {
             ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "empty container");
-            *(outLen) = 0;
             return nullptr;
         }
 
         // declare the length of output
         // 声明输出二进制数组的大小
-        uint64_t bufferLength = 0;
-
-        // set iterator begin and end
-        std::vector<Element *>::iterator it = elements->begin();
-        std::vector<Element *>::iterator end = elements->end();
+        uint32_t bufferLength = 0;
 
         // calculate buffer length
         // 计算需要的缓冲区的长度
-        for (; it != end; ++it)
+        for (auto it = elements->begin(); it != elements->end(); ++it)
         {
-            switch ((*it)->getType())
-            {
-            case ETYPE_UINT8:
-            case ETYPE_INT8:
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "UINT8");
-                bufferLength += 2;
-                break;
-            case ETYPE_UINT16:
-            case ETYPE_INT16:
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "UINT16");
-                bufferLength += 3;
-                break;
-            case ETYPE_UINT32:
-            case ETYPE_INT32:
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "UINT32");
-                bufferLength += 5;
-                break;
-            case ETYPE_UINT64:
-            case ETYPE_INT64:
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "UINT64");
-                bufferLength += 9;
-                break;
-            case ETYPE_FLOAT:
-                bufferLength += 5;
-                break;
-            case ETYPE_DOUBLE:
-                bufferLength += 9;
-                break;
-            case ETYPE_STRING:
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "STRING");
-                bufferLength += 5;
-                bufferLength += (*it)->getRawBufferLength() - 1;
-                break;
-            case ETYPE_BUFFER:
-                // ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "U8A");
-                bufferLength += 5;
-                bufferLength += (*it)->getU8aLen();
-                break;
-            case ETYPE_VOID:
-                ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "ETYPE_VOID type");
-                (*outLen) = 0;
-                return nullptr;
-                /**
-                 * @brief above part could changes to:
-                 *
-                 * break;
-                 *
-                 * this will omit current element object
-                 *
-                 */
-                break;
-            default:
-                /**
-                 * @brief unknown type detected, this may cause by other errors in code
-                 *
-                 */
-                ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "unknown type");
-                (*outLen) = 0;
-                return nullptr;
-            }
+            bufferLength += (*it)->getOuterBufferLength();
         }
 
         // allocate buffer
@@ -4707,213 +4897,23 @@ public:
             // will return null pointer if memory allocate failed
             // 如果内存分配失败将返回空指针
             ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "memory allocate failed, buffer length: % llu", bufferLength);
-            (*outLen) = 0;
             return nullptr;
         }
-        bzero(buf, bufferLength);
-
-        // reset iterator position
-        // 重置迭代器指针位置
-        it = elements->begin();
-
-        // offset of output buffer
-        // 输出的缓冲区的偏移量
-        uint64_t k = 0;
-
-        uint16_t a = 0;
-        uint32_t b = 0;
-        uint64_t c = 0;
-        uint8_t *e = nullptr;
-        float f = 0.0f;
-        double d = 0.0f;
+        // bzero(buf, bufferLength);
 
         // start to fill data
         // 从这里开始装填数据
-        // 其实用一个字节来表示类型太浪费了，但是比较方便
 
-        for (; it != end; ++it)
-        {
-            // mark will took 1 byte
-            // 标志位会占用一个字节
-            switch ((*it)->getType())
-            {
-            case ETYPE_UINT8:
-                // 2 bytes total
-                // 一共2字节
-                // set mark
-                // 设置标志位
-                // 下面一样
-                buf[k] = MARK_UINT8;
-            case ETYPE_INT8:
-                buf[k] = buf[k] ? buf[k] : MARK_INT8;
-
-                // set data
-                buf[k + 1] = (*it)->getUint8();
-
-                // move offset
-                k += 2;
-                break;
-
-            case ETYPE_UINT16:
-                // 3 bytes total
-                // set mark
-                buf[k] = MARK_UINT16;
-            case ETYPE_INT16:
-                buf[k] = buf[k] ? buf[k] : MARK_INT16;
-
-                // get number
-                a = (*it)->getUint16();
-
-                // fill data
-                buf[k + 1] = (a & 0xff00U) >> 8;
-                buf[k + 2] = (a & 0x00ffU);
-
-                // move offset
-                k += 3;
-
-                a = 0;
-                break;
-            case ETYPE_UINT32:
-                // 5 bytes total
-                // set mark
-                buf[k] = MARK_UINT32;
-            case ETYPE_INT32:
-                buf[k] = buf[k] ? buf[k] : MARK_INT32;
-
-                // get number
-                b = (*it)->getUint32();
-
-                // fill data
-                buf[k + 1] = (b & 0xff000000U) >> 24;
-                buf[k + 2] = (b & 0x00ff0000U) >> 16;
-                buf[k + 3] = (b & 0x0000ff00U) >> 8;
-                buf[k + 4] = (b & 0x000000ffU);
-
-                // move offset
-                k += 5;
-
-                b = 0;
-                break;
-            case ETYPE_FLOAT:
-                buf[k] = MARK_FLOAT;
-
-                // get number
-                f = (*it)->getFloat();
-                ++k;
-
-                memcpy(buf + k, &f, 4);
-
-                // move offset
-                k += 4;
-
-                f = 0;
-                break;
-            case ETYPE_UINT64:
-                // 9 bytes total
-                // set mark
-                buf[k] = MARK_UINT64;
-            case ETYPE_INT64:
-                buf[k] = buf[k] ? buf[k] : MARK_INT64;
-
-                // get number
-                c = (*it)->getUint64();
-
-                // fill data
-                for (int i = 8; i > 0; --i)
-                {
-                    buf[k + i] = c & 0xff;
-                    c >>= 8;
-                }
-
-                // move offset
-                k += 9;
-
-                c = 0;
-
-                break;
-            case ETYPE_DOUBLE:
-                buf[k] = MARK_DOUBLE;
-
-                // get number
-                d = (*it)->getDouble();
-                ++k;
-
-                memcpy(buf + k, &d, 8);
-
-                // move offset
-                k += 8;
-
-                d = 0;
-                break;
-            case ETYPE_STRING:
-                // 5 + length of string total
-                {
-                    // get length of string
-                    // 获取字符串的长度
-                    b = (*it)->getRawBufferLength() - 1;
-
-                    // set mark
-                    buf[k] = MARK_STRING;
-
-                    // set length of string
-                    // 填充字符串的长度
-                    buf[k + 1] = (b & 0xff000000U) >> 24;
-                    buf[k + 2] = (b & 0x00ff0000U) >> 16;
-                    buf[k + 3] = (b & 0x0000ff00U) >> 8;
-                    buf[k + 4] = (b & 0x000000ffU);
-
-                    // move offset
-                    // 修改偏移量
-                    k += 5;
-
-                    // copy buffer
-                    // 拷贝
-                    memcpy(buf + k, (*it)->getRawBuffer(), b);
-
-                    // move offset
-                    k += b;
-
-                    // reset variables
-                    b = 0;
-                }
-                break;
-            case ETYPE_BUFFER:
-                // 5 + length of buffer total
-
-                // get buffer pointer and length of buffer to "b"
-                e = (*it)->getUint8Array(&b);
-
-                // set mark
-                buf[k] = MARK_BUFFER;
-
-                // set length of buffer
-                buf[k + 1] = (b & 0xff000000U) >> 24;
-                buf[k + 2] = (b & 0x00ff0000U) >> 16;
-                buf[k + 3] = (b & 0x0000ff00U) >> 8;
-                buf[k + 4] = (b & 0x000000ffU);
-
-                // move offset
-                k += 5;
-
-                // copy buffer
-                memcpy(buf + k, e, b);
-
-                // move offset
-                k += b;
-
-                // reset variables
-                e = nullptr;
-                b = 0;
-
-                break;
-            default:
-                break;
-            }
-        }
+        uint32_t offset = 0;
 
         // set output length
         // 设置输出数组的长度
         (*outLen) = bufferLength;
+
+        for (auto it = elements->begin(); it != elements->end(); ++it)
+        {
+            (*it)->pack(buf, &offset);
+        }
 
         // return pointer of uint8 array
         // 返回数组指针
@@ -4996,21 +4996,7 @@ public:
 
         // offset in source buffer
         // 源数组的偏移量
-        uint64_t k = 0;
-
-        // temporary variable for build uint64 element
-        // 用于构建64位整数的临时变量
-        uint64_t u64 = 0;
-
-        // for calculate length of string and uint8 array
-        // 用于存放字符串和二进制数组长度的变量
-        uint32_t len;
-
-        uint32_t tmp32 = 0;
-        uint64_t tmp64 = 0;
-        uint8_t tmpMark = 0;
-        float tmpF = 0.0f;
-        double tmpD = 0.0f;
+        uint32_t offset = 0;
 
         // mark if there is error
         // 指示过程中是否存在错误
@@ -5018,7 +5004,7 @@ public:
 
         // start generating Elements
         // 开始生成元素
-        while (k < length)
+        while (offset < length)
         {
             if (error)
             {
@@ -5028,226 +5014,13 @@ public:
                 break;
             }
 
-            /**
-             * @brief the codes following is contrary to createArrayBuffer
-             * so there is no more comments
-             * will check remainder buffer size before every part
-             *
-             * 下面的代码与createArrayBuffer的逻辑完全相反
-             * 所以就不多翻译了
-             * 每次生成新元素之前都会检测剩余buffer的长度
-             */
-            switch (data[k])
-            {
-            case MARK_UINT8: // uint8
-            case MARK_INT8:  // int8
-                if (k + 1 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint8");
-                    error = true;
-                    break;
-                }
+            Element *e = new Element();
+            int32_t singleOffset = e->setFromOuterBuffer(data, offset, length);
 
-                if (data[k] == MARK_UINT8)
-                {
-                    output->push_back(new Element((uint8_t)(data[k + 1])));
-                }
-                else
-                {
-                    output->push_back(new Element((int8_t)(data[k + 1])));
-                }
+            output->push_back(e);
+            offset += singleOffset;
 
-                k += 2;
-                break;
-            case MARK_UINT16: // uint16
-            case MARK_INT16:  // int16
-                if (k + 2 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint16");
-                    error = true;
-                    break;
-                }
-                if (data[k] == MARK_UINT16)
-                    output->push_back(new Element((uint16_t)((data[k + 1] << 8) + (data[k + 2]))));
-                else
-                    output->push_back(new Element((int16_t)((data[k + 1] << 8) + (data[k + 2]))));
-                k += 3;
-                break;
-            case MARK_UINT32: // uint32
-            case MARK_INT32:  // int32
-
-                if (k + 4 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint32");
-                    error = true;
-                    break;
-                }
-                tmp32 = (uint32_t)((uint32_t)(data[k + 1] << 24) +
-                                   (uint32_t)(data[k + 2] << 16) +
-                                   (uint32_t)(data[k + 3] << 8) +
-                                   (uint32_t)(data[k + 4]));
-                if (data[k] == MARK_UINT32)
-                {
-                    output->push_back(new Element(tmp32));
-                }
-                else
-                {
-                    output->push_back(new Element((int32_t)tmp32));
-                }
-
-                tmp32 = 0;
-
-                k += 5;
-                break;
-            case MARK_FLOAT: // float
-                if (k + 4 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint32");
-                    error = true;
-                    break;
-                }
-                ++k;
-
-                memcpy(&tmpF, data + k, 4);
-
-                output->push_back(new Element(tmpF));
-
-                k += 4;
-                break;
-            case MARK_UINT64: // uint64
-            case MARK_INT64:  // int64
-                if (k + 8 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint64");
-                    error = true;
-                    break;
-                }
-                tmpMark = data[k];
-
-                // skip mark byte
-                // 跳过标志字节位置
-                ++k;
-
-                // memcpy(&u64, data + k, 8);
-
-                for (int i = 0; i < 8; ++i)
-                {
-
-                    u64 += data[k + i];
-                    if (i < 7)
-                        u64 <<= 8;
-                }
-
-                if (tmpMark == MARK_UINT64)
-                {
-
-                    output->push_back(new Element(u64));
-                }
-                else
-                {
-
-                    output->push_back(new Element((int64_t)u64));
-                }
-
-                u64 = 0;
-                k += 8;
-                break;
-
-            case MARK_DOUBLE: // double
-                if (k + 8 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint32");
-                    error = true;
-                    break;
-                }
-                ++k;
-
-                memcpy(&tmpD, data + k, 8);
-
-                output->push_back(new Element(tmpD));
-
-                k += 8;
-                break;
-            case MARK_STRING: // String
-            {
-                if (k + 4 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding string length");
-                    error = true;
-                    break;
-                }
-
-                len = (uint32_t)((data[k + 1] << 24) + (data[k + 2] << 16) + (data[k + 3] << 8) + (data[k + 4]));
-
-                k += 5;
-
-                if (!len)
-                {
-                    // empty string
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "empty string detected");
-                    output->push_back(new Element(""));
-                    break;
-                }
-
-                if (k + len > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding string");
-                    error = true;
-                    break;
-                }
-
-                Element *str = new Element((const char *)data, k, len);
-
-                output->push_back(str);
-
-                k += len;
-                break;
-            }
-            case MARK_BUFFER: // uint8 array
-            {
-                if (k + 4 > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint8 array length");
-                    error = true;
-                    break;
-                }
-                len = (uint32_t)((data[k + 1] << 24) + (data[k + 2] << 16) + (data[k + 3] << 8) + (data[k + 4]));
-                k += 5;
-
-                if (k + len > length)
-                {
-                    ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "error when decoding uint8 array");
-                    error = true;
-                    break;
-                }
-
-                if (onlyCopyPointer)
-                {
-                    // directly use constructor of element, but it won't copy data
-                    // this is for large binary data transfer and use, like OTA update
-                    // 直接使用元素的构造函数，但是不会拷贝数据
-                    // 这个方法是为了传输和使用大二进制数组，比如OTA升级
-                    output->push_back(new Element(data, len, false, k));
-                }
-                else
-                {
-                    // directly use constructor of element to copy data
-                    // 直接使用元素的构造函数来拷贝数据
-
-                    output->push_back(new Element(data, len, true, k));
-                }
-
-                k += len;
-                break;
-            }
-            default:
-                ESP_LOGD(ARRAY_BUFFER_DEBUG_HEADER, "unknown type when decoding, offset: %llu, data: %u", k, data[k]);
-                if (!data[k])
-                {
-                    ++k;
-                }
-                break;
-            }
+            error = singleOffset < 0;
         }
 
         if (error)

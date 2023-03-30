@@ -13,112 +13,36 @@
 	const MARK_FLOAT = 0x92;
 	const MARK_DOUBLE = 0x93;
 
-	function push1Byte(arr, n) {
-		arr.push(n);
-	};
-	function push2Bytes(arr, n) {
-		let b = new DataView(new Uint16Array([n]).buffer);
-		arr.push(b.getUint8(1));
-		arr.push(b.getUint8(0));
-	};
-	function push4Bytes(arr, n) {
-		let b = new DataView(new Uint32Array([n]).buffer);
-		for (let j = 3; j > -1; j--) {
-			arr.push(b.getUint8(j));
-		}
-	};
-	function push8Bytes(arr, t) {
-		let high = new DataView(new Uint32Array([t & 0xffffffff]).buffer);
-		t = parseInt(t / 0xffffffff);
-		let low = new DataView(new Uint32Array([t & 0xffffffff]).buffer);
-		let bigNumber = [];
 
-		for (let i = 0; i < 4; i++) {
-			bigNumber.push(high.getUint8(i));
+	function pushNBytes(json) {
+		for (let i = 0; i < json.byteLength; ++i) {
+			json.arr.push(0);
 		}
-		for (let i = 0; i < 4; i++) {
-			bigNumber.push(low.getUint8(i));
-		}
-
-		bigNumber.reverse();
-
-		for (let i of bigNumber) {
-			arr.push(i);
-		}
-	};
-	function pop1Byte(arr, dv, offset, showOffset, unsigned) {
-		if (showOffset) {
-			arr.push({
-				data: unsigned ? dv.getUint8(offset) : dv.getInt8(offset),
-				offset: offset,
-				length: 1
-			});
-		} else {
-			arr.push(unsigned ? dv.getUint8(offset) : dv.getInt8(offset));
-		}
-		return 1;
-	};
-	function pop2Bytes(arr, dv, offset, showOffset, unsigned) {
-		if (showOffset) {
-			arr.push({
-				data: unsigned ? dv.getUint16(offset) : dv.getInt16(offset),
-				offset: offset,
-				length: 2
-			});
-		} else {
-			arr.push(unsigned ? dv.getUint16(offset) : dv.getInt16(offset));
-		}
-		return 2;
-	};
-	function pop4Bytes(arr, dv, offset, showOffset, unsigned) {
-		if (showOffset) {
-			arr.push({
-				data: unsigned ? dv.getUint32(offset) : dv.getInt32(offset),
-				offset: offset,
-				length: 4
-			});
-		} else {
-			arr.push(unsigned ? dv.getUint32(offset) : dv.getInt32(offset));
-		}
-		return 4;
-	};
-	function pop8Bytes(arr, dv, offset, showOffset, convertBigintToNumber) {
-		let b = BigInt(0);
-
-		let tmpU32 = new Uint32Array(2);
-
-
-		for (let i = 0; i < 4; i++) {
-			tmpU32[0] = tmpU32[0] + dv.getUint8(offset + i);
-			if (i < 3)
-				tmpU32[0] <<= 8;
+		let buffer = new Uint8Array(json.arr);
+		let dv = new DataView(buffer.buffer);
+		switch (json.type) {
+			case "8":
+				dv.setUint8(buffer.byteLength - json.byteLength, json.number);
+				break;
+			case "16":
+				dv.setUint16(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+			case "32":
+				dv.setUint32(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+			case "64":
+				dv.setBigUint64(buffer.byteLength - json.byteLength, BigInt(json.number), true);
+				break;
+			case "f":
+				dv.setFloat32(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+			case "d":
+				dv.setFloat64(buffer.byteLength - json.byteLength, json.number, true);
+				break;
 		}
 
-
-		for (let i = 4; i < 8; i++) {
-			tmpU32[1] = tmpU32[1] + dv.getUint8(offset + i);
-			if (i < 7)
-				tmpU32[1] <<= 8;
-		}
-
-		b += BigInt(tmpU32[0]);
-		b <<= BigInt(32);
-		b += BigInt(tmpU32[1]);
-
-		if (convertBigintToNumber) {
-			b = Number(b);
-		}
-
-		if (showOffset) {
-			arr.push({
-				data: b,
-				offset: offset,
-				length: 8
-			});
-		} else {
-			arr.push(b);
-		}
-		return 8;
+		json.arr = Array.from(buffer);
+		return json.arr;
 	};
 
 	function createArrayBuffer(a) {
@@ -140,33 +64,73 @@
 						//unsigned int
 						if (n < 256) {
 							arr.push(MARK_UINT8);
-							push1Byte(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 1,
+								number: n,
+								type: "8"
+							});
 						} else if (n > 255 && n < 65536) {
 							arr.push(MARK_UINT16);
-							push2Bytes(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 2,
+								number: n,
+								type: "16"
+							});
 						}
 						else if (n > 65535 && n < 4294967296) {
 							arr.push(MARK_UINT32);
-							push4Bytes(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 4,
+								number: n,
+								type: "32"
+							});
 						} else {
 							arr.push(MARK_UINT64);
-							push8Bytes(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 8,
+								number: n,
+								type: "64"
+							});
 						}
 					} else {
 						//signed int
 						if (n >= -128) {
 							arr.push(MARK_INT8);
-							push1Byte(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 1,
+								number: n,
+								type: "8"
+							});
 						} else if (n < -128 && n >= -32768) {
 							arr.push(MARK_INT16);
-							push2Bytes(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 2,
+								number: n,
+								type: "16"
+							});
 						}
 						else if (n < -32768 && n >= -2147483648) {
 							arr.push(MARK_INT32);
-							push4Bytes(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 4,
+								number: n,
+								type: "32"
+							});
 						} else {
 							arr.push(MARK_INT64);
-							push8Bytes(arr, n);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 8,
+								number: n,
+								type: "64"
+							});
 						}
 					}
 				} else {
@@ -176,48 +140,40 @@
 					if (t > 5) {
 						//double
 						arr.push(MARK_DOUBLE);
-						push8Bytes(arr, n);
+						arr = pushNBytes({
+							arr: arr,
+							byteLength: 8,
+							number: n,
+							type: "d"
+						});
 					} else {
 						//float
 						arr.push(MARK_FLOAT);
-						push4Bytes(arr, n);
+						arr = pushNBytes({
+							arr: arr,
+							byteLength: 4,
+							number: n,
+							type: "f"
+						});
 					}
 				}
 			} else if (0 <= typeName.indexOf("bigint")) {
-				let bigNumber = a[w];
 				arr.push(MARK_UINT64);
-				let t = BigInt(0xff); //minify doesn't support 0xffn, so use BigInt
-				let offset = BigInt(8);
-				let tmpArr = [];
-				for (let i = 0; i < 8; ++i) {
-					tmpArr.push(Number(bigNumber & t));
-					bigNumber >>= offset;
-				}
-				tmpArr.reverse();
-
-				for (let i of tmpArr) {
-					arr.push(i);
-				}
-			} else if (0 <= typeName.indexOf("object")) {
-				arr.push(MARK_STRING);
-
-				let originalObject = new TextEncoder().encode(JSON.stringify(a[w]));
-
-				let b = new DataView(new Uint32Array([originalObject.length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
-
-				for (let h of originalObject) {
-					arr.push(h);
-				}
+				arr = pushNBytes({
+					arr: arr,
+					byteLength: 8,
+					number: a[w],
+					type: "64"
+				});
 			} else if (0 <= typeName.indexOf("uint8array")) {
 				arr.push(MARK_BUFFER);
 
-				let b = new DataView(new Uint32Array([a[w].length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
+				arr = pushNBytes({
+					arr: arr,
+					byteLength: 4,
+					number: a[w].length,
+					type: "32"
+				});
 
 				for (let h of a[w]) {
 					arr.push(h);
@@ -227,27 +183,19 @@
 
 				let originalString = new TextEncoder().encode(a[w]);
 
-				let b = new DataView(new Uint32Array([originalString.length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
+				arr = pushNBytes({
+					arr: arr,
+					byteLength: 4,
+					number: originalString.length + 1,
+					type: "32"
+				});
 
 				for (let h of originalString) {
 					arr.push(h);
 				}
+				arr.push(0);
 			} else {
-				arr.push(MARK_EXTRA);
 
-				let originalUnknown = new TextEncoder().encode(JSON.stringify(a[w]));
-
-				let b = new DataView(new Uint32Array([originalUnknown.length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
-
-				for (let h of originalUnknown) {
-					arr.push(h);
-				}
 			}
 		}
 
@@ -293,7 +241,18 @@
 					if (buffer.byteLength - offset < 1) {
 						return returnEmpty();
 					}
-					offset += pop1Byte(arr, dv, offset, showOffset, (mark == MARK_UINT8 ? true : false));
+
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT8 ? dv.getUint8(offset) : dv.getInt8(offset),
+							offset: offset,
+							length: 1
+						});
+					} else {
+						arr.push(mark == MARK_UINT8 ? dv.getUint8(offset) : dv.getInt8(offset));
+					}
+					++offset;
+
 					if (decodeFirstByte) {
 						break;
 					}
@@ -304,7 +263,16 @@
 					if (buffer.byteLength - offset < 2) {
 						return returnEmpty();
 					}
-					offset += pop2Bytes(arr, dv, offset, showOffset, (mark == MARK_UINT16 ? true : false));
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT16 ? dv.getUint16(offset, true) : dv.getInt16(offset, true),
+							offset: offset,
+							length: 2
+						});
+					} else {
+						arr.push(mark == MARK_UINT16 ? dv.getUint16(offset, true) : dv.getInt16(offset, true));
+					}
+					offset += 2;
 					break;
 
 				case MARK_UINT32:
@@ -313,7 +281,16 @@
 					if (buffer.byteLength - offset < 4) {
 						return returnEmpty();
 					}
-					offset += pop4Bytes(arr, dv, offset, showOffset, (mark == MARK_UINT32 ? true : false));
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT32 ? dv.getUint32(offset, true) : dv.getInt32(offset, true),
+							offset: offset,
+							length: 4
+						});
+					} else {
+						arr.push(mark == MARK_UINT32 ? dv.getUint32(offset, true) : dv.getInt32(offset, true));
+					}
+					offset += 4;
 					break;
 				case MARK_UINT64:
 				case MARK_INT64:
@@ -321,7 +298,16 @@
 					if (buffer.byteLength - offset < 8) {
 						return returnEmpty();
 					}
-					offset += pop8Bytes(arr, dv, offset, showOffset, convertBigintToNumber);
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT64 ? dv.getBigUint64(offset, true) : dv.getBigInt64(offset, true),
+							offset: offset,
+							length: 8
+						});
+					} else {
+						arr.push(mark == MARK_UINT64 ? dv.getBigUint64(offset, true) : dv.getBigInt64(offset, true));
+					}
+					offset += 8;
 					break;
 				case MARK_FLOAT:
 				case MARK_DOUBLE:
@@ -331,12 +317,12 @@
 					}
 					if (showOffset) {
 						arr.push({
-							data: arr.push(mark == MARK_FLOAT ? dv.getFloat32(offset) : dv.getFloat64(offset)),
+							data: arr.push(mark == MARK_FLOAT ? dv.getFloat32(offset, true) : dv.getFloat64(offset, true)),
 							offset: offset,
 							length: (mark == MARK_FLOAT ? 4 : 8)
 						});
 					} else {
-						arr.push(mark == MARK_FLOAT ? dv.getFloat32(offset) : dv.getFloat64(offset));
+						arr.push(mark == MARK_FLOAT ? dv.getFloat32(offset, true) : dv.getFloat64(offset, true));
 					}
 					offset += (mark == MARK_FLOAT ? 4 : 8);
 					break;
@@ -347,7 +333,7 @@
 						return returnEmpty();
 					}
 
-					let len = dv.getUint32(offset);
+					let len = dv.getUint32(offset, true);
 					offset += 4;
 
 					if (buffer.byteLength - offset < len) {
@@ -382,7 +368,7 @@
 					if (buffer.byteLength - offset < 4) {
 						return returnEmpty();
 					}
-					let l = dv.getUint32(offset);
+					let l = dv.getUint32(offset, true) - 1;
 					offset += 4;
 					if (buffer.byteLength - offset < l) {
 						return returnEmpty();
@@ -392,6 +378,7 @@
 						str[n] = dv.getUint8(offset++);
 					}
 					str = new TextDecoder().decode(str);
+					++offset;
 
 					if (showOffset) {
 						arr.push({
@@ -422,6 +409,7 @@
 		}
 		return obj;
 	};
+
 
 	if (typeof window == "object") {
 		window.createArrayBuffer = createArrayBuffer;

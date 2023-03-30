@@ -381,8 +381,8 @@
 
 // for keep alive
 // 用于保活
-#define CMD_HELLO 0x0C
-#define CMD_WORLD 0xC0
+#define CMD_HELLO (uint8_t)0x0C
+#define CMD_WORLD (uint8_t)0xC0
 
 /**
  * @brief esp32 will send this command to server after
@@ -394,37 +394,39 @@
  * 到服务器以注册自己的id，服务器会发回unix时间戳到esp32用以同步时间
  *
  */
-#define CMD_REGISTER_OR_ROLE_AUTHORIZE 0x80
+#define CMD_REGISTER_OR_ROLE_AUTHORIZE (uint8_t)0x80
 
 // administrator pushed a request to esp32 require
 // esp32 start ota process
 // 管理员发送了ota升级请求到esp32要求esp32立即开始
 // ota升级过程
-#define CMD_OTA_WEBSOCKET 0xAB
+#define CMD_OTA_WEBSOCKET (uint8_t)0xAB
 
 // server send ota data segment to esp32
 // 服务器发给esp32一个ota数据块
-#define CMD_OTA_BLOCK 0xAC
+#define CMD_OTA_BLOCK (uint8_t)0xAC
 
 // esp32 send this command to show information
 // esp32发送此命令用于显示信息
-#define CMD_LOG 0xFB
+#define CMD_LOG (uint8_t)0xFB
+
+#define CMD_PROVIDER_RESPONSE (uint8_t)0xBC
 
 // user(admin or normal user) sent a request
 // require basic information of current device
 // 用户(管理员或普通用户)发送了请求
 // 要求esp32发送自己的基本信息数据
-#define CMD_FIND_DEVICE 0xAF
+#define CMD_FIND_DEVICE (uint8_t)0xAF
 
 // esp32 send this command to server with basic information
 // esp32 发送此命令和基本信息到服务器用以回应查找设备命令
-#define CMD_FIND_DEVICE_RESPONSE 0xFA
+#define CMD_FIND_DEVICE_RESPONSE (uint8_t)0xFA
 
 // user require esp32 to execute a command
 // esp32 will find related id of provider and execute it
 // 用户要求esp32执行某个命令
 // esp32会根据id号查找对应的功能提供器然后执行对应功能
-#define CMD_EXECUTE_COMMAND 0xBB
+#define CMD_EXECUTE_COMMAND (uint8_t)0xBB
 
 // the following commands is for websocket server(ap mode)
 // 下面的命令是给websocket服务器使用的(ap模式)
@@ -433,11 +435,11 @@
 // like ssid and password of wifi, admin user name
 // and password...
 // 用户设置给当前设备设置基础信息，比如wifi名称和密码，管理员账号密码...
-#define CMD_AP_SET_BASIC_INFORMATION 0x00
+#define CMD_AP_SET_BASIC_INFORMATION (uint8_t)0x00
 
 // user require current device reboot in 3 seconds
 // 用户要求当前设备在3秒后重启
-#define CMD_AP_DELAY_REBOOT 0x01
+#define CMD_AP_DELAY_REBOOT (uint8_t)0x01
 
 // user require current device reboot immediately
 // 用户要求当前设备立即重启
@@ -445,16 +447,16 @@
 
 // user require current device rollback firmware
 // 用户要求当前设备回滚固件
-#define CMD_AP_ROLLBACK 0x88
+#define CMD_AP_ROLLBACK (uint8_t)0x88
 
 // user require current device into deep sleeep
 // 用户要求当前设备进入深度睡眠
-#define CMD_AP_DEEPSLEEP 0x89
+#define CMD_AP_DEEPSLEEP (uint8_t)0x89
 
 // the following 3 commands are not use currently
 // 下面三个命令现在没有使用
-#define CMD_AP_CONNECT_WIFI 0x90
-#define CMD_AP_WIFI_UNAVAILABLE 0x10
-#define CMD_AP_WIFI_CONNECTED 0X11
+#define CMD_AP_CONNECT_WIFI (uint8_t)0x90
+#define CMD_AP_WIFI_UNAVAILABLE (uint8_t)0x10
+#define CMD_AP_WIFI_CONNECTED (uint8_t)0X11
 
 #endif
