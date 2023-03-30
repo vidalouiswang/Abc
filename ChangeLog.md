@@ -1,3 +1,26 @@
+2023/03/30
+
+English:
+
+1. Change data format to standard little endian.
+2. ETYPE_STRING will copy last '\0'.
+3. Move part of processes of create buffer and decode buffer to class Element.
+4. Data processing of JS had been synchronized with cpp.
+
+中文:
+
+1. 修改数据格式为标准小端存储。
+2. 字符串类型现在会拷贝末尾的 '\0'。
+3. 编解码 Elements 的一部分处理过程移动到类 Element。
+4. JS的数据处理过程现已与C++同步。
+
+2023/03/28
+
+English:
+
+1. Bug fixed:
+    * Non-copy mode of class Element for buffer.
+
 2023/03/26
 
 English:
