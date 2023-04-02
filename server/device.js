@@ -1,5 +1,7 @@
 (function () {
     let w = window;
+    const PROVIDER_BUTTON = 1;
+    const PROVIDER_DBC_BUTTON = 2;
     let createButton = (text, fnClick, fnDblClick, id, className) => {
         let obj = create("a");
         obj.className = className || "button";
@@ -11,282 +13,297 @@
         return obj;
     }
 
-    class Provider {
-        constructor(boardID, providerID, name, mask, isAdmin, customID, parent) {
-            this.boardID = boardID;
+    class ProviderButton {
+        constructor(boardID, id, name, type, settings, parent) {
             this.parent = parent;
-            this.providerID = providerID;
-            if (customID !== null) {
-                this.customID = customID;
-                this.hasCustomID = true;
-            }
-
-            this.name = name;
-            this.mask = mask;
-            this.isAdmin = isAdmin;
-            this.arguments = [];
-            this.showToUser = false;
-            this.buildContainer();
-
+            this.boardID = boardID;
         }
-        buildContainer() {
-            let div = create();
-            let btn = null;
-            let helperID = getHash(this.boardID + this.providerID + this.name);
-            div.id = helperID + "_container";
-            let mask = this.mask;
+    };
 
-            let lengthOfAArguments = mask & 0b00000111;
-            this.lengthOfAArguments = lengthOfAArguments;
+    // class Provider {
+    //     constructor(boardID, providerInfo, parent) {
+    //         this.boardID = boardID;
+    //         this.parent = parent;
+    //         this.data = "";
+    //         this.id = providerInfo[0];
 
-            let commonShowToAdmin = mask & 0b10000000;
-            let questionAdmin = mask & 0b01000000;
-            let adminRequired = mask & 0b00100000;
-            let showToUser = mask & 0b00010000
-            let encrypt = mask & 0b00001000;
-            this.encrypt = encrypt ? !0 : !1;
+    //         switch (providerInfo[1]) {
+    //             case PROVIDER_BUTTON:
+    //                 this.data = provider
+    //                 break;
+    //         }
 
+    //         if (customID !== null) {
+    //             this.customID = customID;
+    //             this.hasCustomID = true;
+    //         }
 
-            if (commonShowToAdmin || questionAdmin || adminRequired) {
-                if (!this.isAdmin) {
-                    div.style.display = "none";
-                } else {
-                    if (commonShowToAdmin) {
-                        btn = createButton(this.name, e => { this.execute(); });
-                    } else if (questionAdmin) {
-                        btn = createButton(this.name, 0, e => { this.execute(); });
-                    }
-                }
-            } else {
-                div.style.display = "inline-block";
-                btn = createButton(this.name, e => { this.execute(); });
-                this.showToUser = true;
-            }
+    //         this.name = name;
+    //         this.mask = mask;
+    //         this.isAdmin = isAdmin;
+    //         this.arguments = [];
+    //         this.showToUser = false;
+    //         this.buildContainer();
 
-            for (let i = 0; i < lengthOfAArguments; ++i) {
-                let argument = create("input");
-                argument.type = "text";
-                argument.className = "LoginInput";
-                argument.placeholder = i.toString();
-                argument.addEventListener("keyup", e => {
-                    if (/^@hex/.test(argument.value)) {
-                        argument.hexMode = !0;
-                        argument.placeholder = "Hex Mode (" + i.toString() + ")";
-                        argument.value = "";
-                    }
-                    if (/^@qhex/.test(argument.value)) {
-                        argument.hexMode = 0;
-                        argument.placeholder = i.toString();
-                        argument.value = "";
-                    }
-                });
+    //     }
+    //     buildContainer() {
+    //         let div = create();
+    //         let btn = null;
+    //         let helperID = getHash(this.boardID + this.providerID + this.name);
+    //         div.id = helperID + "_container";
+    //         let mask = this.mask;
 
-                argument.addEventListener("dragover", function (e) {
-                    e.preventDefault();
-                    e.cancelBubble = true;
-                    return false;
-                });
-                argument.addEventListener("drop", function (e) {
-                    e.preventDefault();
-                    e.cancelBubble = true;
-                    if (e.dataTransfer) {
-                        let file = e.dataTransfer.files[0]
-                        let reader = new FileReader();
-                        let fileName = file.name;
+    //         let lengthOfAArguments = mask & 0b00000111;
+    //         this.lengthOfAArguments = lengthOfAArguments;
 
-                        if (fileName.endsWith(".hex") || fileName.endsWith(".txt")) {
-                            reader.readAsText(file, 'utf-8');
-                        } else if (fileName.endsWith(".bin")) {
-                            reader.readAsArrayBuffer(file);
-                        } else {
-                            showMsg("未知类型 Unknown type");
-                            return;
-                        }
-
-                        reader.onload = function (e) {
-                            showMsg("文件已加载 File loaded")
-                            if (fileName.endsWith(".hex") || fileName.endsWith(".txt")) {
-                                argument.attachedHexContent = e.target.result;
-                            } else {
-                                argument.attachedBinaryContent = e.target.result;
-                            }
-                        };
-                    }
-
-                    return false;
-                });
-
-                this.arguments.push(argument);
-                div.appendChild(argument);
-            }
-            if (btn) {
-                div.appendChild(btn);
-                btn.title = "Provider ID: " + this.providerID + (this.hasCustomID ? (", Custom ID: " + this.customID) : "");
-                btn.id = helperID;
-            }
-
-            if (!lengthOfAArguments) {
-                div.style.display = "inline-block";
-            }
+    //         let commonShowToAdmin = mask & 0b10000000;
+    //         let questionAdmin = mask & 0b01000000;
+    //         let adminRequired = mask & 0b00100000;
+    //         let showToUser = mask & 0b00010000
+    //         let encrypt = mask & 0b00001000;
+    //         this.encrypt = encrypt ? !0 : !1;
 
 
-            this.container = div;
-        }
-        execute() {
+    //         if (commonShowToAdmin || questionAdmin || adminRequired) {
+    //             if (!this.isAdmin) {
+    //                 div.style.display = "none";
+    //             } else {
+    //                 if (commonShowToAdmin) {
+    //                     btn = createButton(this.name, e => { this.execute(); });
+    //                 } else if (questionAdmin) {
+    //                     btn = createButton(this.name, 0, e => { this.execute(); });
+    //                 }
+    //             }
+    //         } else {
+    //             div.style.display = "inline-block";
+    //             btn = createButton(this.name, e => { this.execute(); });
+    //             this.showToUser = true;
+    //         }
 
-            if (window.android) {
-                let exists = window.android.getExists();
+    //         for (let i = 0; i < lengthOfAArguments; ++i) {
+    //             let argument = create("input");
+    //             argument.type = "text";
+    //             argument.className = "LoginInput";
+    //             argument.placeholder = i.toString();
+    //             argument.addEventListener("keyup", e => {
+    //                 if (/^@hex/.test(argument.value)) {
+    //                     argument.hexMode = !0;
+    //                     argument.placeholder = "Hex Mode (" + i.toString() + ")";
+    //                     argument.value = "";
+    //                 }
+    //                 if (/^@qhex/.test(argument.value)) {
+    //                     argument.hexMode = 0;
+    //                     argument.placeholder = i.toString();
+    //                     argument.value = "";
+    //                 }
+    //             });
 
-                if (exists.length) {
-                    let tmp = exists.split(",");
+    //             argument.addEventListener("dragover", function (e) {
+    //                 e.preventDefault();
+    //                 e.cancelBubble = true;
+    //                 return false;
+    //             });
+    //             argument.addEventListener("drop", function (e) {
+    //                 e.preventDefault();
+    //                 e.cancelBubble = true;
+    //                 if (e.dataTransfer) {
+    //                     let file = e.dataTransfer.files[0]
+    //                     let reader = new FileReader();
+    //                     let fileName = file.name;
 
-                    if (tmp.length % 5) {
-                        window.android.update("invalid length");
-                        return;
-                    }
-                }
+    //                     if (fileName.endsWith(".hex") || fileName.endsWith(".txt")) {
+    //                         reader.readAsText(file, 'utf-8');
+    //                     } else if (fileName.endsWith(".bin")) {
+    //                         reader.readAsArrayBuffer(file);
+    //                     } else {
+    //                         showMsg("未知类型 Unknown type");
+    //                         return;
+    //                     }
 
-                let tmp = exists.split(",");
+    //                     reader.onload = function (e) {
+    //                         showMsg("文件已加载 File loaded")
+    //                         if (fileName.endsWith(".hex") || fileName.endsWith(".txt")) {
+    //                             argument.attachedHexContent = e.target.result;
+    //                         } else {
+    //                             argument.attachedBinaryContent = e.target.result;
+    //                         }
+    //                     };
+    //                 }
 
-                let arr = [];
+    //                 return false;
+    //             });
 
-                for (let h = 0; h < tmp.length; h += 5) {
-                    let json = {
-                        id: tmp[h],
-                        name: tmp[h + 1],
-                        boardID: tmp[h + 2],
-                        nickname: tmp[h + 3],
-                        isAdmin: tmp[h + 4]
-                    };
+    //             this.arguments.push(argument);
+    //             div.appendChild(argument);
+    //         }
+    //         if (btn) {
+    //             div.appendChild(btn);
+    //             btn.title = "Provider ID: " + this.providerID + (this.hasCustomID ? (", Custom ID: " + this.customID) : "");
+    //             btn.id = helperID;
+    //         }
 
-                    arr.push(json);
-                }
+    //         if (!lengthOfAArguments) {
+    //             div.style.display = "inline-block";
+    //         }
 
-                let obj = arr.find(e => {
-                    return e.id == this.providerID && e.boardID == this.boardID;
-                });
 
-                if (obj) {
-                    obj.name = this.name;
-                    exists = "";
-                    for (let i of arr) {
-                        exists += `${exists.length ? "," : ""}${i.id},${i.name},${i.boardID},${i.nickname},${i.isAdmin}`;
-                    }
-                } else {
-                    exists += `${exists.length ? "," : ""}${this.providerID},${this.name},${this.boardID},${this.parent.info.nickname},${this.isAdmin ? "admin" : "user"}`;
-                }
+    //         this.container = div;
+    //     }
+    //     execute() {
 
-                window.android.update(exists);
+    //         if (window.android) {
+    //             let exists = window.android.getExists();
 
-                return;
-            }
+    //             if (exists.length) {
+    //                 let tmp = exists.split(",");
 
-            let t = new Date().getTime();
-            let hash = getHash(w.userName + w.password + t.toString(), !0);
+    //                 if (tmp.length % 5) {
+    //                     window.android.update("invalid length");
+    //                     return;
+    //                 }
+    //             }
 
-            hash = new Uint8Array(hash);
+    //             let tmp = exists.split(",");
 
-            let arrArguments = [];
-            for (let i of this.arguments) {
+    //             let arr = [];
 
-                if (i.hexMode || i.attachedHexContent || i.attachedBinaryContent) {
-                    let u8a = null;
-                    let hex = i.attachedHexContent ? i.attachedHexContent.trim() : i.value.trim();
+    //             for (let h = 0; h < tmp.length; h += 5) {
+    //                 let json = {
+    //                     id: tmp[h],
+    //                     name: tmp[h + 1],
+    //                     boardID: tmp[h + 2],
+    //                     nickname: tmp[h + 3],
+    //                     isAdmin: tmp[h + 4]
+    //                 };
 
-                    if (i.attachedBinaryContent) {
-                        u8a = new Uint8Array(i.attachedBinaryContent);
-                    } else {
-                        if (/[^0-9a-fA-F ,]/.test(hex)) {
-                            showMsg("非法字符 Invalid char");
-                            return;
-                        }
+    //                 arr.push(json);
+    //             }
 
-                        if (hex.length === 2) {
-                            u8a = new Uint8Array(1);
-                            u8a[0] = parseInt(hex, 16);
-                        } else {
-                            let isSpliterExists = /[a-fA-F0-9]{1,2}( |,)[a-fA-F0-9]{1,2}/.test(hex);
+    //             let obj = arr.find(e => {
+    //                 return e.id == this.providerID && e.boardID == this.boardID;
+    //             });
 
-                            if (isSpliterExists) {
-                                let arr = hex.split(/[\s,]/);
+    //             if (obj) {
+    //                 obj.name = this.name;
+    //                 exists = "";
+    //                 for (let i of arr) {
+    //                     exists += `${exists.length ? "," : ""}${i.id},${i.name},${i.boardID},${i.nickname},${i.isAdmin}`;
+    //                 }
+    //             } else {
+    //                 exists += `${exists.length ? "," : ""}${this.providerID},${this.name},${this.boardID},${this.parent.info.nickname},${this.isAdmin ? "admin" : "user"}`;
+    //             }
 
-                                if (arr.length) {
-                                    for (let j = 0; j < arr.length; ++j) {
-                                        arr[j] = arr[j].trim();
-                                        if (!arr[j].length) {
-                                            arr.splice(j, 1);
-                                            if (j > 0) {
-                                                j--;
-                                            }
-                                            continue;
-                                        }
-                                        arr[j] = parseInt(arr[j], 16);
-                                    }
-                                    u8a = new Uint8Array(arr);
-                                } else {
-                                    showMsg("无内容 Empty content");
-                                    return;
-                                }
-                            } else {
-                                if (hex.length % 2) {
-                                    showMsg("非法长度 Invalid length");
-                                    return;
-                                }
+    //             window.android.update(exists);
 
-                                let arr = [];
+    //             return;
+    //         }
 
-                                let unit = "";
+    //         let t = new Date().getTime();
+    //         let hash = getHash(w.userName + w.password + t.toString(), !0);
 
-                                for (let j = 0; j < hex.length; j += 2) {
-                                    unit = hex.substring(j, j + 2).trim();
-                                    if (unit.length) {
-                                        arr.push(parseInt(unit, 16));
-                                    }
-                                }
-                                u8a = new Uint8Array(arr);
-                            }
-                        }
-                    }
+    //         hash = new Uint8Array(hash);
 
-                    arrArguments.push(u8a);
-                } else {
-                    let t = i.value;
-                    if (this.parent.serialTail === 1) {
-                        t += "\r";
-                    } else if (this.parent.serialTail === 2) {
-                        t += "\n";
-                    } else if (this.parent.serialTail === 3) {
-                        t += "\r\n";
-                    }
-                    arrArguments.push(t);
-                }
+    //         let arrArguments = [];
+    //         for (let i of this.arguments) {
 
-            }
+    //             if (i.hexMode || i.attachedHexContent || i.attachedBinaryContent) {
+    //                 let u8a = null;
+    //                 let hex = i.attachedHexContent ? i.attachedHexContent.trim() : i.value.trim();
 
-            let command = BigInt("0xC0000000000000BB"); // 0x80 | 0x40, fixed 80, 0x40 == 0b01000000, message should be confirmed
+    //                 if (i.attachedBinaryContent) {
+    //                     u8a = new Uint8Array(i.attachedBinaryContent);
+    //                 } else {
+    //                     if (/[^0-9a-fA-F ,]/.test(hex)) {
+    //                         showMsg("非法字符 Invalid char");
+    //                         return;
+    //                     }
 
-            let arr = [
-                command, //command
-                this.boardID, //esp32 id
-                w.id, //web client id
-                t, //time
-                hash, //hash
-                this.providerID, //provider id
-            ];
+    //                     if (hex.length === 2) {
+    //                         u8a = new Uint8Array(1);
+    //                         u8a[0] = parseInt(hex, 16);
+    //                     } else {
+    //                         let isSpliterExists = /[a-fA-F0-9]{1,2}( |,)[a-fA-F0-9]{1,2}/.test(hex);
 
-            if (arrArguments.length) {
-                let buffer = new Uint8Array(createArrayBuffer(arrArguments));
+    //                         if (isSpliterExists) {
+    //                             let arr = hex.split(/[\s,]/);
 
-                if (this.encrypt) {
-                    buffer = buffer.toHex();
-                    buffer = encrypt(buffer, w.password, w.password.substring(0, 32), !0);
-                }
-                arr.push(buffer);
-            }
+    //                             if (arr.length) {
+    //                                 for (let j = 0; j < arr.length; ++j) {
+    //                                     arr[j] = arr[j].trim();
+    //                                     if (!arr[j].length) {
+    //                                         arr.splice(j, 1);
+    //                                         if (j > 0) {
+    //                                             j--;
+    //                                         }
+    //                                         continue;
+    //                                     }
+    //                                     arr[j] = parseInt(arr[j], 16);
+    //                                 }
+    //                                 u8a = new Uint8Array(arr);
+    //                             } else {
+    //                                 showMsg("无内容 Empty content");
+    //                                 return;
+    //                             }
+    //                         } else {
+    //                             if (hex.length % 2) {
+    //                                 showMsg("非法长度 Invalid length");
+    //                                 return;
+    //                             }
 
-            sendArrayBuffer(arr);
-        }
-    }
+    //                             let arr = [];
+
+    //                             let unit = "";
+
+    //                             for (let j = 0; j < hex.length; j += 2) {
+    //                                 unit = hex.substring(j, j + 2).trim();
+    //                                 if (unit.length) {
+    //                                     arr.push(parseInt(unit, 16));
+    //                                 }
+    //                             }
+    //                             u8a = new Uint8Array(arr);
+    //                         }
+    //                     }
+    //                 }
+
+    //                 arrArguments.push(u8a);
+    //             } else {
+    //                 let t = i.value;
+    //                 if (this.parent.serialTail === 1) {
+    //                     t += "\r";
+    //                 } else if (this.parent.serialTail === 2) {
+    //                     t += "\n";
+    //                 } else if (this.parent.serialTail === 3) {
+    //                     t += "\r\n";
+    //                 }
+    //                 arrArguments.push(t);
+    //             }
+
+    //         }
+
+    //         let command = BigInt("0xC0000000000000BB"); // 0x80 | 0x40, fixed 80, 0x40 == 0b01000000, message should be confirmed
+
+    //         let arr = [
+    //             command, //command
+    //             this.boardID, //esp32 id
+    //             w.id, //web client id
+    //             t, //time
+    //             hash, //hash
+    //             this.providerID, //provider id
+    //         ];
+
+    //         if (arrArguments.length) {
+    //             let buffer = new Uint8Array(createArrayBuffer(arrArguments));
+
+    //             if (this.encrypt) {
+    //                 buffer = buffer.toHex();
+    //                 buffer = encrypt(buffer, w.password, w.password.substring(0, 32), !0);
+    //             }
+    //             arr.push(buffer);
+    //         }
+
+    //         sendArrayBuffer(arr);
+    //     }
+    // }
 
 
 
@@ -447,7 +464,7 @@
             this.providerPanel = providerPanel;
             let divAdminToolsWithZeroArguments = create();
             for (let i = 0; i < arrProviders.length; i++) {
-                let provider = decodeArrayBuffer(arrProviders[i].buffer, !0, ["id", "mask", "name", "customID"]);
+                let provider = decodeArrayBuffer(arrProviders[i].buffer, !0);
                 if (!provider) {
                     continue;
                 }

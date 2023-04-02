@@ -1,3 +1,21 @@
+2023/04/02
+
+English:
+
+1. Unify mark for transfer and type of class Element.
+2. Change function name from "webSerial" to "sendMessageToClient" of class GlobalManager. 
+3. Change argument type of "sendMessageToClient" to Element&, which is more convenient to use. New usage: "global->sendMessageToClient(100); global->sendMessageToClient(3.14); global->sendMessageToClient("Hello world!"); ...".
+4. Change bytes format of Element from custom to little endian, attenation, this is NOT compatible with former version, MyDB will be interacted.
+5. Because of bytes format changed, there will be a function added after, it could update former version.
+
+中文:
+
+1. 统一了用于传输的标志和类 Element 的类型。
+2. 类 GlobalManager 的成员函数 "webSerial" 的名称修改为 "sendMessageToClient"。
+3. "sendMessageToClient" 参数类型修改为 Element& ， 这可以让使用更加方便。
+4. 更改了类 Element 存储数据的字节序，由自定义字节序修改为小段存储，注意，这个修改不兼容以前的版本，内置的数据库组件将受到影响。
+5. 由于更改了字节序，之后会添加一个函数用于更新已存储的数据到新的版本。
+
 2023/03/30
 
 English:

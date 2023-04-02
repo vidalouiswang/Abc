@@ -1018,6 +1018,9 @@
 		let clientFromHttpGetIndex = methodGetWaitForResponse.findIndex(e => { return e.userID == arr[2]; });
 		if (clientFromHttpGetIndex < 0) {
 			//websocket
+			if(getType(arr[2]) == "u8a"){
+				arr[2] = arr[2].toHex();
+			}
 			launchData(findTargetByID(arr[2]), 0, data);
 		} else {
 			//http

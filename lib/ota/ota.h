@@ -118,7 +118,7 @@ public:
      * @param port port for websocket ota update, websocket升级服务器端口
      * @param path path for websocket ota update, websocket升级服务器路径
      */
-    void start(Element *universalID, String domain, uint16_t port, String path);
+    void start(Element universalID, String domain, uint16_t port, String path);
 
     ~WebsocketOTA();
 };

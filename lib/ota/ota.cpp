@@ -24,7 +24,7 @@ WebsocketOTA::WebsocketOTA(std::vector<Element *> *startOTARequest, OTACallback 
     this->index = 0;
 }
 
-void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, String path)
+void WebsocketOTA::start(Element universalID, String domain, uint16_t port, String path)
 {
     this->client = new WebSocketClient();
 
@@ -35,7 +35,7 @@ void WebsocketOTA::start(Element *universalID, String domain, uint16_t port, Str
     // prefill data
     // 预填充数据
     this->request->push_back(new Element(CMD_OTA_BLOCK));
-    this->request->push_back(new Element(universalID->getUint8Array(), 32));
+    this->request->push_back(new Element(universalID.getRawBuffer(), 32));
     this->request->push_back(new Element(this->index));
 
     // set callback for ota update websocket client

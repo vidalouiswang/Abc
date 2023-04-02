@@ -33,7 +33,7 @@
 #include <vector>
 #include <Arduino.h>
 #include <functional>
-#include <math.h>
+#include <initializer_list>
 #include <mycrypto.h>
 
 #define ARRAY_BUFFER_DEBUG_HEADER "Array Buffer"
@@ -59,24 +59,6 @@
 // default constructor of "int" will be use auto set type if defined
 // 如果定义了此宏，默认的 "int" 构造函数将会自动设置类型和数据
 #define ENABLE_INT_DEFAULT_CONSTRUCTOR_AUTO_SET_TYPE_AND_DATA
-
-typedef enum : uint8_t
-{
-    MARK_VOID = 0,
-    MARK_UINT8 = 0x80,
-    MARK_UINT16 = 0x81,
-    MARK_UINT32 = 0x82,
-    MARK_UINT64 = 0x83,
-    MARK_STRING = 0x86,
-    MARK_BUFFER = 0x85,
-    MARK_INT8 = 0x88,
-    MARK_INT16 = 0x89,
-    MARK_INT32 = 0x90,
-    MARK_INT64 = 0x91,
-    MARK_FLOAT = 0x92,
-    MARK_DOUBLE = 0x93,
-    MARK_EXTRA = 0x87
-} EncodedBufferMark;
 
 /**
  * @brief all you need right here
@@ -601,7 +583,7 @@ public:
      * @return true success 成功
      * @return false failed 失败
      */
-    bool copyFrom(uint8_t *buffer, uint64_t length)
+    bool copyFrom(uint8_t *buffer, uint32_t length)
     {
         this->clearBuffer();
         return this->_copyBuffer(buffer, length, 0);
@@ -988,7 +970,7 @@ public:
      * @param length length of buffer
      * @return Element& self
      */
-    Element &operator()(uint8_t *buffer, uint64_t length)
+    Element &operator()(uint8_t *buffer, uint32_t length)
     {
         this->copyFrom(buffer, length);
         return *this;
@@ -4665,69 +4647,6 @@ public:
             return 0;
         }
     }
-    EncodedBufferMark getMark() const
-    {
-        switch (this->type)
-        {
-        case ETYPE_UINT8:
-            return MARK_UINT8;
-        case ETYPE_INT8:
-            return MARK_INT8;
-        case ETYPE_UINT16:
-            return MARK_UINT16;
-        case ETYPE_INT16:
-            return MARK_INT16;
-        case ETYPE_UINT32:
-            return MARK_UINT32;
-        case ETYPE_INT32:
-            return MARK_INT32;
-        case ETYPE_FLOAT:
-            return MARK_FLOAT;
-        case ETYPE_UINT64:
-            return MARK_UINT64;
-        case ETYPE_INT64:
-            return MARK_INT64;
-        case ETYPE_DOUBLE:
-            return MARK_DOUBLE;
-        case ETYPE_STRING:
-            return MARK_STRING;
-        case ETYPE_BUFFER:
-            return MARK_BUFFER;
-        }
-        return MARK_VOID;
-    }
-
-    ElementType markToType(EncodedBufferMark mark)
-    {
-        switch (mark)
-        {
-        case MARK_UINT8:
-            return ETYPE_UINT8;
-        case MARK_INT8:
-            return ETYPE_INT8;
-        case MARK_UINT16:
-            return ETYPE_UINT16;
-        case MARK_INT16:
-            return ETYPE_INT16;
-        case MARK_UINT32:
-            return ETYPE_UINT32;
-        case MARK_INT32:
-            return ETYPE_INT32;
-        case MARK_FLOAT:
-            return ETYPE_FLOAT;
-        case MARK_UINT64:
-            return ETYPE_UINT64;
-        case MARK_INT64:
-            return ETYPE_INT64;
-        case MARK_DOUBLE:
-            return ETYPE_DOUBLE;
-        case MARK_STRING:
-            return ETYPE_STRING;
-        case MARK_BUFFER:
-            return ETYPE_BUFFER;
-        }
-        return ETYPE_VOID;
-    }
 
     bool pack(uint8_t *buffer, uint32_t *offset) const
     {
@@ -4739,7 +4658,7 @@ public:
         uint32_t dataLen = 0;
         uint64_t c = 0;
 
-        buffer[(*offset)] = this->getMark();
+        buffer[(*offset)] = (uint8_t)this->type;
         ++(*offset); // skip mark
 
         switch (this->type)
@@ -4790,51 +4709,48 @@ public:
         if (!buffer)
             return -2;
 
-        if (buffer[offset] < 0x80)
-            return -2;
-
         if (length < 2)
             return -2;
 
-        EncodedBufferMark mark = (EncodedBufferMark)buffer[offset++];
+        int8_t mark = (int8_t)buffer[offset++];
 
         uint8_t *internalBuffer = (uint8_t *)(&(this->data));
 
         bzero(internalBuffer, sizeof(ElementData));
 
-        this->reset(this->markToType(mark));
+        this->reset((ElementType)mark);
 
         uint32_t dataLen;
 
         switch (mark)
         {
-        case MARK_UINT8:
-        case MARK_INT8:
+        case ETYPE_UINT8:
+        case ETYPE_INT8:
             memcpy(&(this->data.u8), buffer + offset, 1);
             return 2;
-        case MARK_UINT16:
-        case MARK_INT16:
+        case ETYPE_UINT16:
+        case ETYPE_INT16:
             memcpy(&(this->data.u16), buffer + offset, 2);
             return 3;
-        case MARK_UINT32:
-        case MARK_INT32:
+        case ETYPE_UINT32:
+        case ETYPE_INT32:
             memcpy(&(this->data.u32), buffer + offset, 4);
             return 5;
-        case MARK_FLOAT:
+        case ETYPE_FLOAT:
             memcpy(&(this->data.f), buffer + offset, 4);
             return 5;
-        case MARK_UINT64:
-        case MARK_INT64:
+        case ETYPE_UINT64:
+        case ETYPE_INT64:
             memcpy(&(this->data.u64), buffer + offset, 8);
             return 9;
-        case MARK_DOUBLE:
+        case ETYPE_DOUBLE:
             memcpy(&(this->data.d), buffer + offset, 8);
             return 9;
-        case MARK_STRING:
+        case ETYPE_STRING:
             memcpy(&dataLen, buffer + offset, 4);
             this->_copyBuffer(buffer, dataLen, offset + 4, ETYPE_STRING);
             return dataLen + 5;
-        case MARK_BUFFER:
+        case ETYPE_BUFFER:
             memcpy(&dataLen, buffer + offset, 4);
             this->_copyBuffer(buffer, dataLen, offset + 4, ETYPE_BUFFER);
             return dataLen + 5;
@@ -4856,6 +4772,42 @@ typedef std::function<void(Elements *output)> decodeArrayBufferCallback;
 class ArrayBuffer
 {
 public:
+    static uint8_t *createArrayBuffer(std::initializer_list<Element> list, uint32_t *outLen)
+    {
+        (*outLen) = 0;
+
+        if (!list.size())
+            return nullptr;
+
+        uint32_t bufferLength = 0;
+
+        for (const auto &i : list)
+            bufferLength += i.getOuterBufferLength();
+
+        if (!bufferLength)
+            return nullptr;
+
+        uint8_t *buf = new (std::nothrow) uint8_t[bufferLength];
+
+        if (!buf)
+            return buf;
+
+        (*outLen) = bufferLength;
+
+        uint32_t offset = 0;
+
+        for (const auto &i : list)
+        {
+            if (!i.pack(buf, &offset))
+            {
+                delete buf;
+                return nullptr;
+            }
+        }
+
+        return buf;
+    }
+
     /**
      * @brief this function will create an uint8 array using a vector provided
      * 这个函数会使用你提供的vector构造一个二进制数组

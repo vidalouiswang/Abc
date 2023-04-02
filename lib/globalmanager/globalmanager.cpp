@@ -360,7 +360,7 @@ void GlobalManager::executeCommand(
 
         // fill response
         response->push_back(new Element(CMD_LOG));
-        response->push_back(new Element(this->getUniversalID()->getUint8Array(), 32));
+        response->push_back(new Element(this->getUniversalID().getRawBuffer(), 32));
         response->push_back(new Element(output->at(2)->getString()));
         response->push_back(new Element("unavailable"));
 
@@ -473,7 +473,7 @@ void GlobalManager::executeCommand(
 
 void GlobalManager::sendHello(bool hello, myWebSocket::WebSocketClient *client)
 {
-    uint8_t buffer[2] = {0x80, ((hello ? (uint8_t)CMD_HELLO : (uint8_t)CMD_WORLD))};
+    uint8_t buffer[2] = {0x01, ((hello ? CMD_HELLO : CMD_WORLD))};
 
     myWebSocket::WebSocketClient *sender = client ? (client)
                                                   : ((this->websocketClient ? (this->websocketClient) : (nullptr)));
@@ -981,7 +981,7 @@ void GlobalManager::internalRemoteMsgHandler(
                                 // 2 == web client id, string
                                 // 3 == log, string
                                 response->push_back(new Element(CMD_LOG));
-                                response->push_back(new Element(this->getUniversalID()->getUint8Array(), 32));
+                                response->push_back(new Element(this->getUniversalID().getRawBuffer(), 32));
                                 response->push_back(new Element(output->at(1)->getString()));
                                 response->push_back(new Element("ota start failed"));
                                 delete this->ota;
@@ -1000,7 +1000,7 @@ void GlobalManager::internalRemoteMsgHandler(
                         // give a response to administrator
                         // using log channel
                         response->push_back(new Element(CMD_LOG));
-                        response->push_back(new Element(this->getUniversalID()->getUint8Array(), 32));
+                        response->push_back(new Element(this->getUniversalID().getRawBuffer(), 32));
                         response->push_back(new Element(output->at(1)->getString()));
                         response->push_back(new Element("OTA Update Started"));
 
@@ -1103,37 +1103,24 @@ void GlobalManager::internalRemoteMsgHandler(
     delete response;
 }
 
-void GlobalManager::webSerial(Element *msg)
+bool GlobalManager::sendMessageToClient(const Element &msg)
 {
     if (this->isWifiConnected && this->websocketClient && this->websocketClient->connected())
     {
-        if (!this->_webSerialContainer)
-        {
-            this->_webSerialContainer = new std::vector<Element *>();
-            this->_webSerialContainer->push_back(new Element(CMD_LOG));
-            this->_webSerialContainer->push_back(new Element(this->getUniversalID()->getUint8Array(), 32));
-
-            String adminID = this->userName.getHex() + this->password.getHex() + "admin";
-            adminID = mycrypto::SHA::sha256(adminID);
-
-            this->_webSerialContainer->push_back(new Element(adminID));
-        }
-
-        this->_webSerialContainer->push_back(msg);
-
         uint32_t outLen = 0;
 
-        uint8_t *buffer = ArrayBuffer::createArrayBuffer(this->_webSerialContainer, &outLen);
+        uint8_t *buffer = ArrayBuffer::createArrayBuffer(
+            {this->eLogCommand, this->UniversalID, this->eAdminIDStr, msg}, &outLen);
 
         if (outLen && buffer)
         {
             this->websocketClient->send(buffer, outLen);
             delete buffer;
+            Serial.println("message sent");
+            return true;
         }
-
-        this->_webSerialContainer->erase(this->_webSerialContainer->begin() + 3);
-        delete msg;
     }
+    return false;
 }
 
 OneTimeAuthorization *GlobalManager::generateOneTimeAuthorization()
@@ -1182,7 +1169,7 @@ bool GlobalManager::_sendBundle(String frinedID, T command, uint16_t providerID,
         request->push_back(new Element(frinedID));
 
         // self id
-        request->push_back(new Element(this->UniversalID->getHex()));
+        request->push_back(new Element(this->UniversalID.getHex()));
 
         // generate one time authorization data
         OneTimeAuthorization *authorize = this->generateOneTimeAuthorization();
@@ -1226,24 +1213,16 @@ bool GlobalManager::_sendBundle(String frinedID, T command, uint16_t providerID,
 
 void GlobalManager::buildRegisterBuffer()
 {
-    // container
-    std::vector<Element *> registerCacheContainer =
-        {new Element(CMD_REGISTER_OR_ROLE_AUTHORIZE),          // command
-         new Element(this->UniversalID->getUint8Array(), 32),  // esp32 id
-         new Element(this->userName.getUint8Array(), 32),      // admin user name(sha256)
-         new Element((this->isNewFirmwareBoot ? 0x01 : 0x00)), // if after ota updated
+    this->registerBuffer = ArrayBuffer::createArrayBuffer(
+        {CMD_REGISTER_OR_ROLE_AUTHORIZE,          // command
+         this->UniversalID,                       // esp32 id
+         this->userName,                          // admin user name(sha256)
+         (this->isNewFirmwareBoot ? 0x01 : 0x00), // if after ota updated
          ((this->usersBuffer &&
            this->lengthOfUsersBuffer)
               ? (new Element(this->usersBuffer, this->lengthOfUsersBuffer))
-              : (new Element(0x00)))};
-
-    // create buffer
-    this->registerBuffer = ArrayBuffer::createArrayBuffer(&registerCacheContainer, &(this->lengthOfRegisterBuffer));
-
-    for (auto i : registerCacheContainer)
-    {
-        delete i;
-    }
+              : (new Element(0x00)))},
+        &(this->lengthOfRegisterBuffer));
 }
 
 void GlobalManager::internalUniversalWebsocketCallback(myWebSocket::WebSocketClient *client,
@@ -1381,6 +1360,7 @@ void GlobalManager::initializeBasicInformation()
     // it will contains some information, like esp32 id, admin user name(sha256), and other user names
     if (this->userName.available() && this->password.available())
     {
+        this->beginLogCommandAndAdminID();
         this->buildRegisterBuffer();
     }
     else
@@ -1978,7 +1958,7 @@ void GlobalManager::setSerialRecvCb()
                     char buf[128] = {0};
 
                     size = Serial.readBytes(buf, Serial.available());
-                    this->webSerial(new Element((uint8_t *)buf, size, false, 0));
+                    this->sendMessageToClient(Element((uint8_t *)buf, size, false, 0));
                 }
                 else
                 {
@@ -1996,7 +1976,7 @@ void GlobalManager::setSerialRecvCb()
                     }
                     bzero(buf, size);
                     size = Serial.readBytes(buf, size - 4);
-                    this->webSerial(new Element((uint8_t *)buf, size, false, 0));
+                    this->sendMessageToClient(Element((uint8_t *)buf, size, false, 0));
                     delete buf;
                 }
             }
@@ -2151,7 +2131,7 @@ void GlobalManager::getFindDeviceBuffer(
     response->push_back(new Element(globalTime->getTime()));                               // current timestamp
     response->push_back(new Element((uint32_t)(ESP.getFreeHeap())));                       // free heap
     response->push_back(new Element(this->nickname.getString().c_str()));                  // nickname of this board
-    response->push_back(new Element(this->UniversalID->getHex().c_str()));                 // id of this board
+    response->push_back(new Element(this->UniversalID.getHex().c_str()));                 // id of this board
     response->push_back(new Element(SYSTEM_VERSION));                                      // current structure version
     response->push_back(new Element(String(APP_VERSION) + String(FIRMWARE_COMPILE_TIME))); // app version & compile time
     response->push_back(new Element(this->bufferProviders, this->bufferProvidersLength));  // providers buffer

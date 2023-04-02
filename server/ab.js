@@ -1,17 +1,17 @@
 (function () {
-	const MARK_UINT8 = 0x80;
-	const MARK_UINT16 = 0x81;
-	const MARK_UINT32 = 0x82;
-	const MARK_UINT64 = 0x83;
-	const MARK_BUFFER = 0x85;
-	const MARK_STRING = 0x86;
-	const MARK_EXTRA = 0x87;
-	const MARK_INT8 = 0x88;
-	const MARK_INT16 = 0x89;
-	const MARK_INT32 = 0x90;
-	const MARK_INT64 = 0x91;
-	const MARK_FLOAT = 0x92;
-	const MARK_DOUBLE = 0x93;
+	const MARK_UINT8 = 1;
+	const MARK_UINT16 = 2;
+	const MARK_UINT32 = 4;
+	const MARK_UINT64 = 8;
+	const MARK_BUFFER = 10;
+	const MARK_STRING = 9;
+	const MARK_EXTRA = 11;
+	const MARK_INT8 = -1;
+	const MARK_INT16 = -2;
+	const MARK_INT32 = -4;
+	const MARK_INT64 = -8;
+	const MARK_FLOAT = 6;
+	const MARK_DOUBLE = 7;
 
 
 	function pushNBytes(json) {
@@ -231,6 +231,9 @@
 
 		while (offset < buffer.byteLength) {
 			let mark = dv.getUint8(offset);
+			if (mark > 247) {
+				mark = mark - 256;
+			}
 			if (arr.length && decodeFirstByte) {
 				break;
 			}
