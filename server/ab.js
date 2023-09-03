@@ -227,8 +227,6 @@
 
 		let offset = 0;
 
-
-
 		while (offset < buffer.byteLength) {
 			let mark = dv.getUint8(offset);
 			if (mark > 247) {
@@ -393,6 +391,8 @@
 						arr.push(str);
 					}
 					break;
+				default:
+					return;
 			}
 		}
 

@@ -1,3 +1,17 @@
+2023/09/03
+
+English:
+1. An auotomatic function added to the codes, it could help you to convert old file format to new.
+Check tail of "config.h".
+(Better backup database and files before you do this)
+2. ESP32-S3 support added, the default ESP32-S3 env added to the "platformio.ini".
+3. A bug fixed. This bug could make app loop won't run.
+
+中文:
+1. 向代码中添加了一个函数可以自动转换旧版本的数据，查看"config.h"的尾部。(最好在转换前先备份数据库和文件)
+2. 现已支持ESP32-S3，默认的ESP32-S3环境参数已添加到 "platformio.ini"。
+3. 修复了一个错误，此错误可能会导致esp32的app loop不会运行。
+
 2023/04/02
 
 English:

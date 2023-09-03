@@ -9,6 +9,159 @@ namespace mycrypto
     // this is included in this class
     // call SHA::initialize();
     // or you will got all zero result
+
+#if CONFIG_IDF_TARGET_ESP32S3
+    void SHA::sha(uint8_t *data, uint64_t length, uint32_t *output, SHAType type)
+    {
+        // type 1 for sha1
+        // 0 for sha256
+        if (length <= 0)
+        {
+            bzero(output, (type & 1 ? 5 : 8));
+            return;
+        }
+
+        // original length
+        uint64_t ori = length;
+
+        // calc padding length
+        length = ((length * 8) % 512);
+        uint64_t zeroLength = ((length < 448) ? (448 - length) : (448 + 512 - length)) / 8;
+
+        // add length
+        length = ori + zeroLength + 8;
+
+        // allocate buffer
+        uint8_t *buf = new (std::nothrow) uint8_t[length];
+
+        if (!buf)
+        {
+            output[0] = 0;
+            return;
+        }
+
+        // padding zero
+        bzero(buf, length);
+
+        // copy original data
+        memcpy(buf, data, ori);
+
+        // padding the "1" after data
+        buf[ori] = (uint8_t)0x80;
+
+        // add data length(bits) to the tail
+        uint64_t bits = ori * 8;
+        for (int i = 0; i < 8; i++)
+        {
+            buf[ori + zeroLength + i] = (bits >> ((7 - i) * 8)) & 0xff;
+        }
+
+        uint64_t i = 0;
+
+        if (type & 1)
+        {
+            DPORT_REG_WRITE(SHA_MODE_REG, (uint32_t)0);
+        }
+        else
+        {
+            DPORT_REG_WRITE(SHA_MODE_REG, (uint32_t)2);
+        }
+
+        // fill 512 bits(1 block) to start
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 0, TO_32_LE(buf));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 4, TO_32_LE(buf + 4));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 8, TO_32_LE(buf + 8));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 12, TO_32_LE(buf + 12));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 16, TO_32_LE(buf + 16));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 20, TO_32_LE(buf + 20));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 24, TO_32_LE(buf + 24));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 28, TO_32_LE(buf + 28));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 32, TO_32_LE(buf + 32));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 36, TO_32_LE(buf + 36));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 40, TO_32_LE(buf + 40));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 44, TO_32_LE(buf + 44));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 48, TO_32_LE(buf + 48));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 52, TO_32_LE(buf + 52));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 56, TO_32_LE(buf + 56));
+        DPORT_REG_WRITE(SHA_TEXT_BASE + 60, TO_32_LE(buf + 60));
+        i += 64;
+
+        // start
+        if (type & 1)
+        {
+            DPORT_REG_WRITE(SHA_START_REG, (uint32_t)(1));
+            while (DPORT_REG_READ(SHA_BUSY_REG))
+            {
+                // yield();
+            }
+        }
+        else
+        {
+            DPORT_REG_WRITE(SHA_START_REG, (uint32_t)(1));
+            while (DPORT_REG_READ(SHA_BUSY_REG))
+            {
+            }
+        }
+
+        // to process other blocks
+        // always fill 512bits(a block) at one time
+        for (; i < length; i += 64)
+        {
+
+            // fill 512 bits(1 block) to start
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 0, TO_32_LE(buf + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 4, TO_32_LE(buf + 4 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 8, TO_32_LE(buf + 8 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 12, TO_32_LE(buf + 12 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 16, TO_32_LE(buf + 16 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 20, TO_32_LE(buf + 20 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 24, TO_32_LE(buf + 24 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 28, TO_32_LE(buf + 28 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 32, TO_32_LE(buf + 32 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 36, TO_32_LE(buf + 36 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 40, TO_32_LE(buf + 40 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 44, TO_32_LE(buf + 44 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 48, TO_32_LE(buf + 48 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 52, TO_32_LE(buf + 52 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 56, TO_32_LE(buf + 56 + i));
+            DPORT_REG_WRITE(SHA_TEXT_BASE + 60, TO_32_LE(buf + 60 + i));
+
+            // continue
+            if (type & 1)
+            {
+                DPORT_REG_WRITE(SHA_CONTINUE_REG, (uint32_t)(1));
+
+                while (DPORT_REG_READ(SHA_BUSY_REG))
+                {
+                }
+            }
+            else
+            {
+                DPORT_REG_WRITE(SHA_CONTINUE_REG, (uint32_t)(1));
+
+                while (DPORT_REG_READ(SHA_BUSY_REG))
+                {
+                }
+            }
+        }
+        delete buf;
+
+        while (DPORT_REG_READ(SHA_BUSY_REG))
+        {
+        }
+
+        uint8_t shaLen = type & 1 ? 5 : 8;
+
+        for (int i = 0; i < shaLen; i++)
+        {
+            output[i] = (uint32_t)DPORT_REG_READ(SHA_H_BASE + (i * 4));
+            output[i] = (uint32_t)(((uint32_t)(output[i] & 0x000000ffu) << 24) |
+                                   ((uint32_t)(output[i] & 0x0000ff00u) << 8) |
+                                   ((uint32_t)(output[i] & 0x00ff0000u) >> 8) |
+                                   ((uint32_t)(output[i] & 0xff000000u) >> 24));
+        }
+    }
+#elif CONFIG_IDF_TARGET_ESP32
     void SHA::sha(uint8_t *data, uint64_t length, uint32_t *output, SHAType type)
     {
         // type 1 for sha1
@@ -161,6 +314,7 @@ namespace mycrypto
             output[i] = (uint32_t)DPORT_REG_READ(DR_REG_SHA_BASE + (i * 4));
         }
     }
+#endif
 
     // this is for arduino framework
     String SHA::aSHA(uint8_t *data, uint64_t length, SHAType type, SHAOutputCase hexCase)
@@ -355,6 +509,113 @@ namespace mycrypto
 
     // AES encryption and decryption according to ESPRESSIF ESP32 technical reference manual,
     // chapter 22, page 523(Chinese version)
+
+#if CONFIG_IDF_TARGET_ESP32S3
+    uint8_t *AES::aes256CBCEncrypt(
+        const uint8_t *key,   // 32 bytes
+        const uint8_t *iv,    // 16 bytes
+        const uint8_t *plain, // plain
+        uint32_t length,      // length of plain
+        uint32_t *outLen      // length of output
+    )
+    {
+
+        esp_crypto_sha_aes_lock_acquire();
+
+        // padding plain with pkcs7 padding
+        uint8_t paddingData = 16 - (length % 16);
+        uint32_t bufferLength = length + paddingData;
+
+        // allocate buffer to hold original data after padding
+        uint8_t *bufferPadding = new (std::nothrow) uint8_t[bufferLength];
+
+        if (!bufferPadding)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "memory allocate failed");
+            (*outLen) = 0;
+            return nullptr;
+        }
+
+        // copy original data
+        memcpy(bufferPadding, plain, length);
+
+        // padding
+        memset(bufferPadding + length, paddingData, paddingData);
+
+        // allocate buffer for uint32 array
+        uint32_t *buffer = (uint32_t *)bufferPadding;
+
+        // length for uint32 array after padding and convertion
+        bufferLength /= 4;
+
+        uint32_t *key32 = (uint32_t *)key;
+        uint32_t *iv32 = (uint32_t *)iv;
+
+        // xor first block with iv
+        for (uint8_t i = 0; i < 4; ++i)
+        {
+            buffer[i] ^= iv32[i];
+        }
+
+        // Typical AES
+        DPORT_REG_WRITE(AES_DMA_ENABLE_REG, (uint32_t)0);
+
+        // config aes mode
+        DPORT_REG_WRITE(AES_MODE_REG, (uint32_t)2);
+
+        // fill key into register
+        for (uint8_t i = 0; i < 8; ++i)
+        {
+            DPORT_REG_WRITE(AES_KEY_BASE + (i * 4), key32[i]);
+        }
+
+        // start encrypting
+        for (uint32_t i = 0; i < bufferLength; i += 4)
+        {
+            // fill plain data(after padding) into register
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE, buffer[i]);
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE + 4, buffer[i + 1]);
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE + 8, buffer[i + 2]);
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE + 12, buffer[i + 3]);
+
+            // start encrypting
+            DPORT_REG_WRITE(AES_TRIGGER_REG, (uint32_t)1);
+
+            // wait idle register
+            while (DPORT_REG_READ(AES_STATE_REG))
+            {
+            }
+
+            // read cipher data from register
+            buffer[i] = DPORT_REG_READ(AES_TEXT_OUT_BASE);
+            buffer[i + 1] = DPORT_REG_READ(AES_TEXT_OUT_BASE + 4);
+            buffer[i + 2] = DPORT_REG_READ(AES_TEXT_OUT_BASE + 8);
+            buffer[i + 3] = DPORT_REG_READ(AES_TEXT_OUT_BASE + 12);
+
+            // encryption finished
+            if (i + 4 >= bufferLength)
+            {
+                break;
+            }
+
+            // xor next block with former cipher text(cbc)
+            buffer[i + 4] ^= buffer[i];
+            buffer[i + 5] ^= buffer[i + 1];
+            buffer[i + 6] ^= buffer[i + 2];
+            buffer[i + 7] ^= buffer[i + 3];
+        }
+
+        uint8_t *u8Buffer = (uint8_t *)buffer;
+
+        // return result
+        (*outLen) = bufferLength * 4;
+
+        esp_crypto_sha_aes_lock_release();
+
+        return u8Buffer;
+    }
+
+#elif CONFIG_IDF_TARGET_ESP32
     uint8_t *AES::aes256CBCEncrypt(
         const uint8_t *key,   // 32 bytes
         const uint8_t *iv,    // 16 bytes
@@ -495,6 +756,130 @@ namespace mycrypto
         return u8Buffer;
     }
 
+#endif
+
+#if CONFIG_IDF_TARGET_ESP32S3
+    uint8_t *AES::aes256CBCDecrypt(
+        const uint8_t *key,    // key
+        const uint8_t *iv,     // iv
+        const uint8_t *cipher, // cipher data
+        uint32_t length,       // length of cipher data
+        uint32_t *outLen       // length of output
+    )
+    {
+
+        // length of input must be an integer of multiple of 16
+        if (length % 16)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "data is invalid");
+            (*outLen) = 0;
+            return nullptr;
+        }
+
+        // calcuate length of uint32 array
+        uint32_t bufferLength = length / 4;
+
+        // allocate buffer
+        uint32_t *buffer = (uint32_t *)cipher;
+
+        uint32_t *key32 = (uint32_t *)key;
+        uint32_t *iv32 = (uint32_t *)iv;
+
+        // fill key into register
+        for (uint8_t i = 0; i < 8; ++i)
+        {
+            DPORT_REG_WRITE(AES_KEY_BASE + (i * 4), key32[i]);
+        }
+
+        // config aes mode and endian
+        DPORT_REG_WRITE(AES_MODE_REG, (uint32_t)6);
+
+        // start decrypting
+        // from last block to previous block
+        for (uint32_t i = bufferLength - 4;;)
+        {
+            // fill cipher data to registers
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE, buffer[i]);
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE + 4, buffer[i + 1]);
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE + 8, buffer[i + 2]);
+            DPORT_REG_WRITE(AES_TEXT_IN_BASE + 12, buffer[i + 3]);
+
+            // start decrypting current block
+            DPORT_REG_WRITE(AES_TRIGGER_REG, (uint32_t)1);
+
+            // wait idle register
+            while (DPORT_REG_READ(AES_STATE_REG))
+            {
+            }
+
+            // read plain data
+            buffer[i] = DPORT_REG_READ(AES_TEXT_OUT_BASE);
+            buffer[i + 1] = DPORT_REG_READ(AES_TEXT_OUT_BASE + 4);
+            buffer[i + 2] = DPORT_REG_READ(AES_TEXT_OUT_BASE + 8);
+            buffer[i + 3] = DPORT_REG_READ(AES_TEXT_OUT_BASE + 12);
+
+            // got plain data of current block
+
+            // the first block has been decrypted
+            // ready to break;
+            if (!i)
+            {
+                break;
+            }
+
+            // xor plain data(after decryption) of current block with former block cipher data
+            if (i >= 4)
+            {
+                buffer[i] ^= buffer[i - 4];
+                buffer[i + 1] ^= buffer[i - 3];
+                buffer[i + 2] ^= buffer[i - 2];
+                buffer[i + 3] ^= buffer[i - 1];
+                // got original data of current block
+            }
+            i -= 4;
+        }
+
+        // xor first block with iv
+        for (uint8_t i = 0; i < 4; ++i)
+        {
+            buffer[i] ^= iv32[i];
+        }
+
+        // read padding length
+        uint8_t paddingLength = (buffer[bufferLength - 1] & (uint32_t)(0xffU));
+        if (!paddingLength || paddingLength > 0x10)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "length of padding is invalid");
+            (*outLen) = 0;
+            // delete buffer;
+            return nullptr;
+        }
+
+        // get length of real data
+        uint32_t realLength = (bufferLength * 4) - paddingLength;
+
+        // allocate buffer for real data
+        uint8_t *outputBuffer = new (std::nothrow) uint8_t[realLength];
+
+        if (!outputBuffer)
+        {
+            ESP_LOGD(MY_CRYPTO_DEBUG_HEADER, "allocate memory failed");
+            (*outLen) = 0;
+            // delete buffer;
+            return nullptr;
+        }
+
+        memcpy(outputBuffer, (uint8_t *)buffer, realLength);
+
+        // remove uint32 array
+        // delete buffer;
+
+        // return data
+        (*outLen) = realLength;
+        return outputBuffer;
+    }
+
+#elif CONFIG_IDF_TARGET_ESP32
     uint8_t *AES::aes256CBCDecrypt(
         const uint8_t *key,    // key
         const uint8_t *iv,     // iv
@@ -654,6 +1039,7 @@ namespace mycrypto
         return outputBuffer;
     }
 
+#endif
     // get hex string of aes 256 cbc
     String AES::aes256CBCEncrypt(String key,  // key
                                  String iv,   // iv

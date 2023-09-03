@@ -4,6 +4,173 @@
 #include <mynet.h>
 #include <esp32time.h>
 
+#ifdef UPDATE_DATABASE_FROM_1_TO_2
+#include <initializer_list>
+
+void updateDatabase(initializer_list<String> list)
+{
+    auto fnUpdate = [](const char *fileName) -> void
+    {
+        uint64_t outlen = 0;
+        uint8_t *buf = MyFS::readFile(fileName, &outlen);
+
+        if (buf && outlen)
+        {
+            uint64_t offsetSrc = 0;
+            uint32_t newBufferLength = 0;
+
+            auto fnGetNewBufferLengthOffset = [&buf, &outlen]() -> uint32_t
+            {
+                uint64_t offset = 0;
+                uint32_t len = 0;
+                uint32_t offsetLen = 0;
+                while (offset < outlen)
+                {
+                    switch (buf[offset])
+                    {
+                    case 0x80: // byte
+                        offset += 2;
+                        break;
+                    case 0x81: // 2 bytes
+                        offset += 3;
+                        break;
+                    case 0x82: // 4 bytes
+                        offset += 5;
+                        break;
+                    case 0x83: // 8 bytes
+                        offset += 9;
+                        break;
+                    case 0x85: // buffer
+                        len = (uint32_t)((buf[offset + 1] << 24) + (buf[offset + 2] << 16) + (buf[offset + 3] << 8) + (buf[offset + 4]));
+                        offset += len + 5;
+                        break;
+                    case 0x86: // string
+                        len = (uint32_t)((buf[offset + 1] << 24) + (buf[offset + 2] << 16) + (buf[offset + 3] << 8) + (buf[offset + 4]));
+                        offset += len + 5;
+                        ++offsetLen;
+                        break;
+                    }
+                }
+                return offsetLen;
+            };
+
+            newBufferLength = outlen + fnGetNewBufferLengthOffset();
+
+            uint8_t *newBuffer = new (std::nothrow) uint8_t[newBufferLength];
+
+            if (!newBuffer)
+            {
+                Serial.println("update failed: buffer allocate failed");
+            }
+
+            bzero(newBuffer, newBufferLength);
+
+            offsetSrc = 0;
+            uint32_t offsetDest = 0;
+            uint32_t len = 0;
+
+            while (offsetSrc < outlen)
+            {
+                switch (buf[offsetSrc])
+                {
+                case 0x80: // byte
+                    newBuffer[offsetDest] = 1;
+                    newBuffer[offsetDest + 1] = buf[offsetSrc + 1];
+                    offsetSrc += 2;
+                    offsetDest += 2;
+                    break;
+                case 0x81: // 2 bytes
+                    newBuffer[offsetDest] = 2;
+                    newBuffer[offsetDest + 1] = buf[offsetSrc + 2];
+                    newBuffer[offsetDest + 2] = buf[offsetSrc + 1];
+                    offsetSrc += 3;
+                    offsetDest += 3;
+                    break;
+                case 0x82: // 4 bytes
+                    newBuffer[offsetDest] = 4;
+                    newBuffer[offsetDest + 1] = buf[offsetSrc + 4];
+                    newBuffer[offsetDest + 2] = buf[offsetSrc + 3];
+                    newBuffer[offsetDest + 3] = buf[offsetSrc + 2];
+                    newBuffer[offsetDest + 4] = buf[offsetSrc + 1];
+                    offsetSrc += 5;
+                    offsetDest += 5;
+                    break;
+                case 0x83: // 8 bytes
+                    newBuffer[offsetDest] = 8;
+                    newBuffer[offsetDest + 1] = buf[offsetSrc + 8];
+                    newBuffer[offsetDest + 2] = buf[offsetSrc + 7];
+                    newBuffer[offsetDest + 3] = buf[offsetSrc + 6];
+                    newBuffer[offsetDest + 4] = buf[offsetSrc + 5];
+                    newBuffer[offsetDest + 5] = buf[offsetSrc + 4];
+                    newBuffer[offsetDest + 6] = buf[offsetSrc + 3];
+                    newBuffer[offsetDest + 7] = buf[offsetSrc + 2];
+                    newBuffer[offsetDest + 8] = buf[offsetSrc + 1];
+                    offsetSrc += 9;
+                    offsetDest += 9;
+                    break;
+                case 0x85: // buffer
+                    newBuffer[offsetDest] = 10;
+                    newBuffer[offsetDest + 1] = buf[offsetSrc + 4];
+                    newBuffer[offsetDest + 2] = buf[offsetSrc + 3];
+                    newBuffer[offsetDest + 3] = buf[offsetSrc + 2];
+                    newBuffer[offsetDest + 4] = buf[offsetSrc + 1];
+                    offsetSrc += 5;
+
+                    offsetDest += 1;
+
+                    memcpy(&len, newBuffer + offsetDest, 4);
+
+                    offsetDest += 4;
+                    memcpy(newBuffer + offsetDest, buf + offsetSrc, len);
+                    offsetSrc += len;
+                    offsetDest += len;
+                    len = 0;
+
+                    break;
+                case 0x86: // string
+                    newBuffer[offsetDest] = 9;
+                    offsetDest += 1;
+
+                    len = (uint32_t)((buf[offsetSrc + 1] << 24) + (buf[offsetSrc + 2] << 16) + (buf[offsetSrc + 3] << 8) + (buf[offsetSrc + 4]));
+
+                    offsetSrc += 5;
+
+                    ++len;
+
+                    memcpy(newBuffer + offsetDest, &len, 4);
+                    offsetDest += 4;
+
+                    memcpy(newBuffer + offsetDest, buf + offsetSrc, len - 1);
+
+                    offsetDest += len;
+                    offsetSrc += len - 1;
+                    len = 0;
+                    break;
+                }
+            }
+
+            MyFS::writeFile(fileName, newBuffer, newBufferLength);
+        }
+    };
+
+    uint8_t c = 0;
+
+    for (auto i : list)
+    {
+        if (i.length())
+        {
+            if (!i.endsWith(".db"))
+            {
+                i += ".db";
+            }
+
+            fnUpdate(i.c_str());
+            ++c;
+        }
+    }
+}
+#endif
+
 void otaTask(void *t)
 {
     for (;;)
@@ -13,36 +180,36 @@ void otaTask(void *t)
     vTaskDelete(NULL);
 }
 
-void APScheduler(void *t)
-{
-    for (;;)
-    {
-        if (global->isAPStarted)
-        {
-            if (millis() - global->getRemoteWebsocketConnectedTime() > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
-            {
-                ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
-                global->closeAP();
-            }
-        }
-        else
-        {
-            if (!global->doNotEnableAP &&
-                global->serverOfflineTimes() > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
-            {
-                global->startAP();
-            }
+// void APScheduler(void *t)
+// {
+//     for (;;)
+//     {
+//         if (global->isAPStarted)
+//         {
+//             if (millis() - global->getRemoteWebsocketConnectedTime() > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
+//             {
+//                 ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
+//                 global->closeAP();
+//             }
+//         }
+//         else
+//         {
+//             if (!global->doNotEnableAP &&
+//                 global->serverOfflineTimes() > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
+//             {
+//                 global->startAP();
+//             }
 
-            if (WiFi.getMode() > 1)
-            {
-                global->globalTask |= GT_CLOSE_AP;
-            }
-        }
+//             if (WiFi.getMode() > 1)
+//             {
+//                 global->globalTask |= GT_CLOSE_AP;
+//             }
+//         }
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-    vTaskDelete(NULL);
-}
+//         vTaskDelay(pdMS_TO_TICKS(1000));
+//     }
+//     vTaskDelete(NULL);
+// }
 
 void setup()
 {
@@ -89,6 +256,26 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
 
     // initialize littlefs
     this->beginFS();
+
+#ifdef UPDATE_DATABASE_FROM_1_TO_2
+    if (!MyFS::fileExist("_udb12_"))
+    {
+        if (MyFS::fileExist("mydb.db"))
+        {
+            Serial.println("waiting update database");
+            delay(1000 * 180);
+            updateDatabase({"mydb", "dbUser", "dbApp"});
+            MyFS::writeFile("_udb12_", "u", false);
+            delay(100);
+            Serial.println("database updated");
+            ESP.restart();
+        }
+        else
+        {
+            MyFS::writeFile("_udb12_", "u", false);
+        }
+    }
+#endif
 
     // load main database raw data(if exists) and build database in ram
     this->beginMainDB();
@@ -1920,27 +2107,72 @@ void GlobalManager::initializeBasicInformation()
 
 #endif
 
-#ifdef ARDUINO_RUNNING_CORE
-    xTaskCreateUniversal(APScheduler,
-                         "APScheduler",
-                         1024,
-                         NULL,
-                         1,
-                         NULL,
-                         ARDUINO_RUNNING_CORE);
-#else
-    xTaskCreateUniversal(APScheduler,
-                         "APScheduler",
-                         1024,
-                         NULL,
-                         1,
-                         NULL,
-                         0);
-#endif
+    // #ifdef ARDUINO_RUNNING_CORE
+    //     xTaskCreateUniversal(APScheduler,
+    //                          "APScheduler",
+    //                          1024,
+    //                          NULL,
+    //                          1,
+    //                          NULL,
+    //                          ARDUINO_RUNNING_CORE);
+    // #else
+    //     xTaskCreateUniversal(APScheduler,
+    //                          "APScheduler",
+    //                          1024,
+    //                          NULL,
+    //                          1,
+    //                          NULL,
+    //                          0);
+    // #endif
 }
 
 void GlobalManager::setSerialRecvCb()
 {
+#if ARDUINO_USB_MODE
+#if ARDUINO_USB_CDC_ON_BOOT // Serial used for USB CDC
+
+    Serial.onEvent(ARDUINO_HW_CDC_RX_EVENT, [](void *event_handler_arg,
+                                               esp_event_base_t event_base,
+                                               int32_t event_id,
+                                               void *event_data)
+                   {
+                                            if (global->isSerialDataLoopBack && global->isWifiEnabled && global->isWifiConnected)
+            {
+                size_t size = Serial.available();
+
+                if (!size)
+                {
+                    return;
+                }
+
+                if (size <= 126)
+                {
+                    char buf[128] = {0};
+
+                    size = Serial.readBytes(buf, Serial.available());
+                    global->sendMessageToClient(Element((uint8_t *)buf, size, false, 0));
+                }
+                else
+                {
+                    if (size >= 81916)
+                    {
+                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "long length");
+                        return;
+                    }
+                    size += 4;
+                    char *buf = new (std::nothrow) char[size];
+                    if (!buf)
+                    {
+                        ESP_LOGD(SYSTEM_DEBUG_HEADER, "memory allocate failed");
+                        return;
+                    }
+                    bzero(buf, size);
+                    size = Serial.readBytes(buf, size - 4);
+                    global->sendMessageToClient(Element((uint8_t *)buf, size, false, 0));
+                    delete buf;
+                }
+            } });
+#else
     Serial.onReceive(
         [this]()
         {
@@ -1981,6 +2213,8 @@ void GlobalManager::setSerialRecvCb()
                 }
             }
         });
+#endif
+#endif
 }
 
 void GlobalManager::loop()
@@ -2074,6 +2308,28 @@ void GlobalManager::loop()
 
     // dnsServer->processNextRequest();
     // yield();
+
+    if (this->isAPStarted)
+    {
+        if (millis() - this->getRemoteWebsocketConnectedTime() > AUTOMATIC_CLOSE_AP_IF_REMOTE_WEBSOCKET_CONNECTED_TIMEOUT)
+        {
+            ESP_LOGD(SYSTEM_DEBUG_HEADER, "AP closed");
+            this->closeAP();
+        }
+    }
+    else
+    {
+        if (!this->doNotEnableAP &&
+            this->serverOfflineTimes() > AUTOMATIC_START_AP_IF_REMOTE_WEBSOCKET_DISCONNECTED_TIMES)
+        {
+            this->startAP();
+        }
+
+        if (WiFi.getMode() > 1)
+        {
+            this->globalTask |= GT_CLOSE_AP;
+        }
+    }
 }
 
 void GlobalManager::getFindDeviceBuffer(
@@ -2131,7 +2387,7 @@ void GlobalManager::getFindDeviceBuffer(
     response->push_back(new Element(globalTime->getTime()));                               // current timestamp
     response->push_back(new Element((uint32_t)(ESP.getFreeHeap())));                       // free heap
     response->push_back(new Element(this->nickname.getString().c_str()));                  // nickname of this board
-    response->push_back(new Element(this->UniversalID.getHex().c_str()));                 // id of this board
+    response->push_back(new Element(this->UniversalID.getHex().c_str()));                  // id of this board
     response->push_back(new Element(SYSTEM_VERSION));                                      // current structure version
     response->push_back(new Element(String(APP_VERSION) + String(FIRMWARE_COMPILE_TIME))); // app version & compile time
     response->push_back(new Element(this->bufferProviders, this->bufferProvidersLength));  // providers buffer

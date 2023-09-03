@@ -142,6 +142,9 @@ typedef union
     } e;
 } ElementData;
 
+class Element;
+class ElementObject;
+
 /**
  * @brief this class hold basic data in RAM
  * 这个类用来在RAM中存储基础数据

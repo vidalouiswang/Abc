@@ -27,6 +27,10 @@
 #include "soc/dport_access.h"
 #include "soc/hwcrypto_reg.h"
 
+#if CONFIG_IDF_TARGET_ESP32S3
+#include "esp_crypto_lock.h"
+#endif
+
 #ifndef _DRIVER_PERIPH_CTRL_H_
 #if ESP_IDF_VERSION_MAJOR < 4
 #include "esp_private/periph_ctrl.h"
@@ -34,6 +38,13 @@
 #include "driver/periph_ctrl.h"
 #endif
 #endif
+
+
+#define TO_32_LE(x) (                         \
+    ((uint32_t)(((uint8_t *)(x))[0])) |       \
+    ((uint32_t)(((uint8_t *)(x))[1]) << 8) |  \
+    ((uint32_t)(((uint8_t *)(x))[2]) << 16) | \
+    ((uint32_t)(((uint8_t *)(x))[3]) << 24))
 
 #define MY_CRYPTO_DEBUG_HEADER "mycrypto"
 
