@@ -11,7 +11,7 @@
 ## Brief
 
 This library work with Espressif offical framework esp32-arduino 2.0.3.
-Only had tested on esp32 dev module.
+Support ESP32 and ESP32-S3.
 
 This library is for beginners who want to write their own code, but don't have much foundation. This library can be your starting point for learning esp32, you can use not only all the functions of esp32-arduino, but also esp-idf function, you can learn how to develop ESP32 from simple to further.
 
