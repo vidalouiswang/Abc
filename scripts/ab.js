@@ -1,4 +1,50 @@
 (function () {
+	const MARK_UINT8 = 1;
+	const MARK_UINT16 = 2;
+	const MARK_UINT32 = 4;
+	const MARK_UINT64 = 8;
+	const MARK_BUFFER = 10;
+	const MARK_STRING = 9;
+	const MARK_EXTRA = 11;
+	const MARK_INT8 = -1;
+	const MARK_INT16 = -2;
+	const MARK_INT32 = -4;
+	const MARK_INT64 = -8;
+	const MARK_FLOAT = 6;
+	const MARK_DOUBLE = 7;
+
+
+	function pushNBytes(json) {
+		for (let i = 0; i < json.byteLength; ++i) {
+			json.arr.push(0);
+		}
+		let buffer = new Uint8Array(json.arr);
+		let dv = new DataView(buffer.buffer);
+		switch (json.type) {
+			case "8":
+				dv.setUint8(buffer.byteLength - json.byteLength, json.number);
+				break;
+			case "16":
+				dv.setUint16(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+			case "32":
+				dv.setUint32(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+			case "64":
+				dv.setBigUint64(buffer.byteLength - json.byteLength, BigInt(json.number), true);
+				break;
+			case "f":
+				dv.setFloat32(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+			case "d":
+				dv.setFloat64(buffer.byteLength - json.byteLength, json.number, true);
+				break;
+		}
+
+		json.arr = Array.from(buffer);
+		return json.arr;
+	};
+
 	function createArrayBuffer(a) {
 		if (!a) return;
 		if (!a.length) return;
@@ -9,114 +55,147 @@
 		for (let w = 0; w < a.length; w++) {
 			typeName = oPC.call(a[w]).toLowerCase().split(" ")[1];
 			if (0 <= typeName.indexOf("number")) {
-				if (a[w] < 256) {
-					arr.push(0x80);
+				let n = a[w];
+				let str = n.toString();
 
-					arr.push(a[w]);
-				} else if (a[w] > 255 && a[w] < 65536) {
-					arr.push(0x81);
-
-					let b = new DataView(new Uint16Array([a[w]]).buffer);
-					arr.push(b.getUint8(1));
-					arr.push(b.getUint8(0));
-				}
-				else if (a[w] > 65535 && a[w] < 4294967296) {
-					arr.push(0x82);
-
-					let b = new DataView(new Uint32Array([a[w]]).buffer);
-					for (let j = 3; j > -1; j--) {
-						arr.push(b.getUint8(j));
+				if (parseInt(str) == parseFloat(str)) {
+					//integer
+					if (n >= 0) {
+						//unsigned int
+						if (n < 256) {
+							arr.push(MARK_UINT8);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 1,
+								number: n,
+								type: "8"
+							});
+						} else if (n > 255 && n < 65536) {
+							arr.push(MARK_UINT16);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 2,
+								number: n,
+								type: "16"
+							});
+						}
+						else if (n > 65535 && n < 4294967296) {
+							arr.push(MARK_UINT32);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 4,
+								number: n,
+								type: "32"
+							});
+						} else {
+							arr.push(MARK_UINT64);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 8,
+								number: n,
+								type: "64"
+							});
+						}
+					} else {
+						//signed int
+						if (n >= -128) {
+							arr.push(MARK_INT8);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 1,
+								number: n,
+								type: "8"
+							});
+						} else if (n < -128 && n >= -32768) {
+							arr.push(MARK_INT16);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 2,
+								number: n,
+								type: "16"
+							});
+						}
+						else if (n < -32768 && n >= -2147483648) {
+							arr.push(MARK_INT32);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 4,
+								number: n,
+								type: "32"
+							});
+						} else {
+							arr.push(MARK_INT64);
+							arr = pushNBytes({
+								arr: arr,
+								byteLength: 8,
+								number: n,
+								type: "64"
+							});
+						}
 					}
-				} else if (a[w] >= 4294967296) {
-					arr.push(0x83);
-
-					let t = a[w];
-					let high = new DataView(new Uint32Array([t & 0xffffffff]).buffer);
-					t = parseInt(t / 0xffffffff);
-					let low = new DataView(new Uint32Array([t & 0xffffffff]).buffer);
-					let bigNumber = [];
-
-					for (let i = 0; i < 4; i++) {
-						bigNumber.push(high.getUint8(i));
+				} else {
+					//double
+					//use string length to decide float or double
+					let t = n.toString().length - 1;
+					if (t > 5) {
+						//double
+						arr.push(MARK_DOUBLE);
+						arr = pushNBytes({
+							arr: arr,
+							byteLength: 8,
+							number: n,
+							type: "d"
+						});
+					} else {
+						//float
+						arr.push(MARK_FLOAT);
+						arr = pushNBytes({
+							arr: arr,
+							byteLength: 4,
+							number: n,
+							type: "f"
+						});
 					}
-					for (let i = 0; i < 4; i++) {
-						bigNumber.push(low.getUint8(i));
-					}
-
-					bigNumber.reverse();
-
-					for (let i of bigNumber) {
-						arr.push(i);
-					}
-
 				}
 			} else if (0 <= typeName.indexOf("bigint")) {
-				let bigNumber = a[w];
-				arr.push(0x83);
-				let t = BigInt(0xff); //minify doesn't support 0xffn, so use BigInt
-				let offset = BigInt(8);
-				let tmpArr = [];
-				for (let i = 0; i < 8; ++i) {
-					tmpArr.push(Number(bigNumber & t));
-					bigNumber >>= offset;
-				}
-				tmpArr.reverse();
-
-				for (let i of tmpArr) {
-					arr.push(i);
-				}
-			} else if (0 <= typeName.indexOf("object")) {
-				arr.push(0x84);
-
-				let originalObject = new TextEncoder().encode(JSON.stringify(a[w]));
-
-				let b = new DataView(new Uint32Array([originalObject.length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
-
-				for (let h of originalObject) {
-					arr.push(h);
-				}
+				arr.push(MARK_UINT64);
+				arr = pushNBytes({
+					arr: arr,
+					byteLength: 8,
+					number: a[w],
+					type: "64"
+				});
 			} else if (0 <= typeName.indexOf("uint8array")) {
-				arr.push(0x85);
+				arr.push(MARK_BUFFER);
 
-				let b = new DataView(new Uint32Array([a[w].length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
+				arr = pushNBytes({
+					arr: arr,
+					byteLength: 4,
+					number: a[w].length,
+					type: "32"
+				});
 
 				for (let h of a[w]) {
 					arr.push(h);
 				}
 			} else if (0 <= typeName.indexOf("string")) {
-				arr.push(0x86);
+				arr.push(MARK_STRING);
 
 				let originalString = new TextEncoder().encode(a[w]);
 
-				let b = new DataView(new Uint32Array([originalString.length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
+				arr = pushNBytes({
+					arr: arr,
+					byteLength: 4,
+					number: originalString.length + 1,
+					type: "32"
+				});
 
 				for (let h of originalString) {
 					arr.push(h);
 				}
+				arr.push(0);
 			} else {
-				arr.push(0x87);
 
-				let originalUnknown = new TextEncoder().encode(JSON.stringify(a[w]));
-
-				
-
-				let b = new DataView(new Uint32Array([originalUnknown.length]).buffer);
-				for (let j = 3; j > -1; j--) {
-					arr.push(b.getUint8(j));
-				}
-
-				for (let h of originalUnknown) {
-					arr.push(h);
-				}
 			}
 		}
 
@@ -146,210 +225,177 @@
 			return returnEmpty();
 		}
 
-		for (let h = 0; h < buffer.byteLength;) {
-			if (!(dv.getUint8(h) ^ 0x80)) { //1byte
-				h++;
-				if (buffer.byteLength - h < 1) {
-					return returnEmpty();
-				}
-				if (showOffset) {
-					arr.push({
-						data: dv.getUint8(h),
-						offset: h,
-						length: 1
-					});
-					h++;
-				} else {
-					arr.push(dv.getUint8(h++));
-				}
+		let offset = 0;
 
-				if (decodeFirstByte) {
-					break;
-				}
-
-			} else if (!(dv.getUint8(h) ^ 0x81)) { //2bytes
-				h++;
-				if (buffer.byteLength - h < 2) {
-					return returnEmpty();
-				}
-				if (showOffset) {
-					arr.push({
-						data: dv.getUint16(h),
-						offset: h,
-						length: 2
-					});
-				} else {
-					arr.push(dv.getUint16(h));
-				}
-				h += 2;
-
-			} else if (!(dv.getUint8(h) ^ 0x82)) { //4bytes
-				h++;
-				if (buffer.byteLength - h < 4) {
-					return returnEmpty();
-				}
-				if (showOffset) {
-					arr.push({
-						data: arr.push(dv.getUint32(h)),
-						offset: h,
-						length: 4
-					});
-				} else {
-					arr.push(dv.getUint32(h));
-				}
-				h += 4;
-
-			} else if (!(dv.getUint8(h) ^ 0x83)) { //8bytes bigint
-				h++;
-
-				if (buffer.byteLength - h < 8) {
-					return returnEmpty();
-				}
-
-				let b = BigInt(0);
-
-				let tmpU32 = new Uint32Array(2);
-
-
-				for (let i = 0; i < 4; i++) {
-					tmpU32[0] = tmpU32[0] + dv.getUint8(h + i);
-					if (i < 3)
-						tmpU32[0] <<= 8;
-				}
-
-
-				for (let i = 4; i < 8; i++) {
-					tmpU32[1] = tmpU32[1] + dv.getUint8(h + i);
-					if (i < 7)
-						tmpU32[1] <<= 8;
-				}
-
-				b += BigInt(tmpU32[0]);
-				b <<= BigInt(32);
-				b += BigInt(tmpU32[1]);
-
-				if (convertBigintToNumber) {
-					b = Number(b);
-				}
-
-				if (showOffset) {
-					arr.push({
-						data: b,
-						offset: h,
-						length: 8
-					});
-				} else {
-					arr.push(b);
-				}
-				h += 8;
-			} else if (!(dv.getUint8(h) ^ 0x84)) { //object
-				h++;
-
-				if (buffer.byteLength - h < 4) {
-					return returnEmpty();
-				}
-
-				let len = dv.getUint32(h);
-				h += 4;
-
-				if (buffer.byteLength - h < len) {
-					return returnEmpty();
-				}
-
-				let j = { offset: h };
-				let obj = new Uint8Array(len);
-				for (let n = 0; n < len; n++) {
-					obj[n] = dv.getUint8(h++);
-				}
-				obj = new TextDecoder().decode(obj);
-				try {
-					obj = JSON.parse(obj);
-					if (showOffset) {
-						j.data = obj;
-						j.length = len;
-						arr.push(j);
-					} else {
-						arr.push(obj);
+		while (offset < buffer.byteLength) {
+			let mark = dv.getUint8(offset);
+			if (mark > 247) {
+				mark = mark - 256;
+			}
+			if (arr.length && decodeFirstByte) {
+				break;
+			}
+			switch (mark) {
+				case MARK_UINT8:
+				case MARK_INT8:
+					++offset;
+					if (buffer.byteLength - offset < 1) {
+						return returnEmpty();
 					}
-				} catch (e) { arr.push(obj); }
 
-			} else if (!(dv.getUint8(h) ^ 0x85)) { //u8a
-				h++;
-
-				if (buffer.byteLength - h < 4) {
-					return returnEmpty();
-				}
-
-				let len = dv.getUint32(h);
-				h += 4;
-
-				if (buffer.byteLength - h < len) {
-					return returnEmpty();
-				}
-
-				if (showOffset) {
-					if (len + h > buffer.byteLength) {
+					if (showOffset) {
 						arr.push({
-							offset: h,
-							length: len
+							data: mark == MARK_UINT8 ? dv.getUint8(offset) : dv.getInt8(offset),
+							offset: offset,
+							length: 1
 						});
+					} else {
+						arr.push(mark == MARK_UINT8 ? dv.getUint8(offset) : dv.getInt8(offset));
+					}
+					++offset;
+
+					if (decodeFirstByte) {
 						break;
 					}
-				}
-				let u8a = new Uint8Array(len);
-				for (let n = 0; n < len; n++) {
-					u8a[n] = dv.getUint8(h++);
-				}
-				if (showOffset) {
-					arr.push({
-						data: u8a,
-						offset: h - len - 1,
-						length: len
-					});
-				} else {
-					arr.push(u8a);
-				}
-			} else if (!(dv.getUint8(h) ^ 0x86)) { //string
-				h++;
-				if (buffer.byteLength - h < 4) {
-					return returnEmpty();
-				}
-				let len = dv.getUint32(h);
-				h += 4;
-				if (buffer.byteLength - h < len) {
-					return returnEmpty();
-				}
-				let str = new Uint8Array(len);
-				for (let n = 0; n < len; n++) {
-					str[n] = dv.getUint8(h++);
-				}
-				str = new TextDecoder().decode(str);
-				arr.push(str);
-			} else if (!(dv.getUint8(h) ^ 0x87)) { //object
-				h++;
-				if (buffer.byteLength - h < 4) {
-					return returnEmpty();
-				}
-				let len = dv.getUint32(h);
-				h += 4;
-				if (buffer.byteLength - h < len) {
-					return returnEmpty();
-				}
-				let obj = new Uint8Array(len);
-				for (let n = 0; n < len; n++) {
-					obj[n] = dv.getUint8(h++);
-				}
-				obj = new TextDecoder().decode(obj);
-				try {
-					obj = JSON.parse(obj);
-					arr.push(obj);
-				} catch (e) {
-					arr.push(obj);
-				}
-			} else {
-				return arr;
+					break;
+				case MARK_UINT16:
+				case MARK_INT16:
+					++offset;
+					if (buffer.byteLength - offset < 2) {
+						return returnEmpty();
+					}
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT16 ? dv.getUint16(offset, true) : dv.getInt16(offset, true),
+							offset: offset,
+							length: 2
+						});
+					} else {
+						arr.push(mark == MARK_UINT16 ? dv.getUint16(offset, true) : dv.getInt16(offset, true));
+					}
+					offset += 2;
+					break;
+
+				case MARK_UINT32:
+				case MARK_INT32:
+					++offset;
+					if (buffer.byteLength - offset < 4) {
+						return returnEmpty();
+					}
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT32 ? dv.getUint32(offset, true) : dv.getInt32(offset, true),
+							offset: offset,
+							length: 4
+						});
+					} else {
+						arr.push(mark == MARK_UINT32 ? dv.getUint32(offset, true) : dv.getInt32(offset, true));
+					}
+					offset += 4;
+					break;
+				case MARK_UINT64:
+				case MARK_INT64:
+					++offset;
+					if (buffer.byteLength - offset < 8) {
+						return returnEmpty();
+					}
+					if (showOffset) {
+						arr.push({
+							data: mark == MARK_UINT64 ? dv.getBigUint64(offset, true) : dv.getBigInt64(offset, true),
+							offset: offset,
+							length: 8
+						});
+					} else {
+						arr.push(mark == MARK_UINT64 ? dv.getBigUint64(offset, true) : dv.getBigInt64(offset, true));
+					}
+					offset += 8;
+					break;
+				case MARK_FLOAT:
+				case MARK_DOUBLE:
+					++offset;
+					if (buffer.byteLength - offset < (mark == MARK_FLOAT ? 4 : 8)) {
+						return returnEmpty();
+					}
+					if (showOffset) {
+						arr.push({
+							data: arr.push(mark == MARK_FLOAT ? dv.getFloat32(offset, true) : dv.getFloat64(offset, true)),
+							offset: offset,
+							length: (mark == MARK_FLOAT ? 4 : 8)
+						});
+					} else {
+						arr.push(mark == MARK_FLOAT ? dv.getFloat32(offset, true) : dv.getFloat64(offset, true));
+					}
+					offset += (mark == MARK_FLOAT ? 4 : 8);
+					break;
+				case MARK_BUFFER:
+					++offset;
+
+					if (buffer.byteLength - offset < 4) {
+						return returnEmpty();
+					}
+
+					let len = dv.getUint32(offset, true);
+					offset += 4;
+
+					if (buffer.byteLength - offset < len) {
+						return returnEmpty();
+					}
+
+					if (showOffset) {
+						if (len + offset > buffer.byteLength) {
+							arr.push({
+								offset: offset,
+								length: len
+							});
+							break;
+						}
+					}
+					let u8a = new Uint8Array(len);
+					for (let n = 0; n < len; n++) {
+						u8a[n] = dv.getUint8(offset++);
+					}
+					if (showOffset) {
+						arr.push({
+							data: u8a,
+							offset: offset - len - 1,
+							length: len
+						});
+					} else {
+						arr.push(u8a);
+					}
+					break;
+				case MARK_STRING:
+					++offset;
+					if (buffer.byteLength - offset < 4) {
+						return returnEmpty();
+					}
+					let l = dv.getUint32(offset, true) - 1;
+					offset += 4;
+					if (buffer.byteLength - offset < l) {
+						return returnEmpty();
+					}
+					let str = new Uint8Array(l);
+					for (let n = 0; n < l; n++) {
+						str[n] = dv.getUint8(offset++);
+					}
+					str = new TextDecoder().decode(str);
+					++offset;
+
+					if (showOffset) {
+						arr.push({
+							data: str,
+							offset: offset - l - 1,
+							length: l
+						});
+					} else {
+						arr.push(str);
+					}
+					break;
+				default:
+					return;
 			}
 		}
+
 		if (!names) {
 			return arr;
 		}
@@ -366,6 +412,7 @@
 		}
 		return obj;
 	};
+
 
 	if (typeof window == "object") {
 		window.createArrayBuffer = createArrayBuffer;

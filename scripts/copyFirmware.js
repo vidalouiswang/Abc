@@ -31,13 +31,17 @@ Date.prototype.getFormat = function (format) {
     return format;
 };
 
-let rootPath = process.argv[process.argv.length - 1];
-let firmwarePath = rootPath + ".pio/build/esp32/";
+let bootloaderPath = process.argv[process.argv.length - 1];
+let envPath = bootloaderPath.match(/.+\/\.pio/i).toString();
+
+envPath = envPath.substring(0, envPath.length - 4);
+
+let firmwarePath = bootloaderPath.match(/.+\//i);
 
 let app_h, appName, appVersion;
 
-if (fs.existsSync(rootPath + "src/app/app.h")) {
-    app_h = fs.readFileSync(rootPath + "src/app/app.h").toString();
+if (fs.existsSync(envPath + "src/app/app.h")) {
+    app_h = fs.readFileSync(envPath + "src/app/app.h").toString();
     appName = /#define\s+?APP_NAME\s+?(?<appName>.+)(\s|\n)?/g.exec(app_h).groups.appName;
     appName = appName.replace(/[\\\/,:;'"?\{\}\[\]~`&\^\*\r\n]/g, "");
     appVersion = /#define\s+APP_VERSION\s+?(?<appVersion>.+)(\s|\n)?/g.exec(app_h).groups.appVersion;
@@ -46,10 +50,11 @@ if (fs.existsSync(rootPath + "src/app/app.h")) {
     appVersion = "10";
 }
 
-if (!fs.existsSync(rootPath + "firmware/")) {
-    fs.mkdirSync(rootPath + "firmware/");
+if (!fs.existsSync(bootloaderPath + "firmware/")) {
+    fs.mkdirSync(bootloaderPath + "firmware/");
 }
 
-fs.copyFileSync(firmwarePath + 'firmware.bin', rootPath + "firmware/" + appName + "_" + appVersion + "_" + new Date().getFormat("hh.MM.ss") + ".bin");
+fs.copyFileSync(firmwarePath + 'firmware.bin',
+    envPath + "firmware/" + appName + "_" + appVersion + "_" + new Date().getFormat("hh.MM.ss") + ".bin");
 
 console.log("firmware copied\n");

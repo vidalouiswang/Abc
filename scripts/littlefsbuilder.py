@@ -2,6 +2,8 @@ Import("env", "projenv")
 import platform
 projectRootPath = env.get("PROJECT_DIR") + "/"
 
+bootloaderPath = env.get("FLASH_EXTRA_IMAGES")[0][1]
+
 osType = platform.system().lower()
 
 if osType == "darwin":
@@ -16,7 +18,7 @@ env.Execute("node " + projectRootPath + "ap/tools.js " + projectRootPath)
 env.Execute("node "+ projectRootPath + "scripts/replaceHtml.js " + projectRootPath)
 
 def copyFirmware(source, target, env):
-    env.Execute("node "+ projectRootPath +"scripts/copyFirmware.js " + projectRootPath)
+    env.Execute("node "+ projectRootPath +"scripts/copyFirmware.js " + bootloaderPath)
 
 def OTA(source, target, env):
     env.Execute("node "+ projectRootPath +"scripts/autoOTA.js " + projectRootPath)

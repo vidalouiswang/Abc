@@ -1,6 +1,14 @@
 2023/09/03
 
 English:
+1. Bug fixed: path indexing error for S3.
+
+中文:
+1. 错误已修复: S3的路径索引错误。
+
+2023/09/03
+
+English:
 1. An auotomatic function added to the codes, it could help you to convert old file format to new.
 Check tail of "config.h".
 (Better backup database and files before you do this)
