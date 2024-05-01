@@ -1,3 +1,15 @@
+2024/05/01
+
+English:
+1. Fix bug of build tool.
+2. Now support ESP32-C3.
+
+中文:
+
+1. 修复了构建工具的bug。
+2. 现在支持ESP32-C3。
+
+
 2023/09/03
 
 English:
@@ -19,6 +31,7 @@ Check tail of "config.h".
 1. 向代码中添加了一个函数可以自动转换旧版本的数据，查看"config.h"的尾部。(最好在转换前先备份数据库和文件)
 2. 现已支持ESP32-S3，默认的ESP32-S3环境参数已添加到 "platformio.ini"。
 3. 修复了一个错误，此错误可能会导致esp32的app loop不会运行。
+
 
 2023/04/02
 

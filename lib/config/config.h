@@ -23,7 +23,7 @@
 
 // debug system switch
 // 主框架调试开关
-// #define SYSTEM_DEBUG_ON
+//#define SYSTEM_DEBUG_ON
 
 // a timeout for auto reconnect after wifi access point offline
 // wifi掉线后自动重连的时间间隔
@@ -64,7 +64,7 @@
  * 预设wifi名称
  *
  */
-// #define PRESET_WIFI_SSID "WIFI_NAME"
+//#define PRESET_WIFI_SSID "WIFI_NAME"
 
 /**
  * @brief preset wifi password
@@ -72,7 +72,7 @@
  * 预设wifi密码
  *
  */
-// #define PRESET_WIFI_PASSWORD "12345678"
+//#define PRESET_WIFI_PASSWORD "12345678"
 
 /**
  * @brief you can preset user name for administrator here, attention attached
@@ -85,7 +85,7 @@
  * 不推荐使用此操作
  *
  */
-// #define PRESET_ADMIN_USERNAME ""
+//#define PRESET_ADMIN_USERNAME ""
 
 /**
  * @brief you can preset password for administrator here, attention attached
@@ -98,7 +98,7 @@
  * 不推荐使用此操作
  *
  */
-// #define PRESET_ADMIN_PASSWORD ""
+//#define PRESET_ADMIN_PASSWORD ""
 
 /**
  * @brief if you want to use prset information
@@ -114,28 +114,28 @@
  *
  * 如果在数据库中检索到了websocket连接信息，则预设信息不会被使用。
  */
-// #define ENABLE_USE_PRESET_WEBSOCKET_INFORMATION
+//#define ENABLE_USE_PRESET_WEBSOCKET_INFORMATION
 
 /**
  * @brief preset domain for remote websocket
  * 预设的websocket域名
  *
  */
-// #define PRESET_WEBSOCKET_DOMAIN ""
+//#define PRESET_WEBSOCKET_DOMAIN ""
 
 /**
  * @brief preset port for remote websocket
  * 预设的websocket端口
  *
  */
-// #define PRESET_WEBSOCKET_PORT 0
+//#define PRESET_WEBSOCKET_PORT 0
 
 /**
  * @brief preset path for remote websocket
  * 预设的websocket路径
  *
  */
-// #define PRESET_WEBSOCKET_PATH "/"
+//#define PRESET_WEBSOCKET_PATH "/"
 
 /**
  * @brief to enable SHA1 digest for authorization, attention attached
@@ -158,7 +158,7 @@
  * SHA1用于用户认证不安全，请确定是否真的想使用此选项
  *
  */
-// #define ENABLE_SHA1_AUTHORIZATION
+//#define ENABLE_SHA1_AUTHORIZATION
 
 #ifdef ENABLE_SHA1_AUTHORIZATION
 #define SHA_LENGTH 20
@@ -283,7 +283,7 @@
 // 用以提供更多的RAM供其他功能使用
 // still developing
 // 正在开发
-// #define AUTO_CLEAN_BUILT_IN_PROVIDER_BUFFER
+//#define AUTO_CLEAN_BUILT_IN_PROVIDER_BUFFER
 
 // timeout for shrink provider buffer
 // 缩减 provider buffer 的超时时间
@@ -295,7 +295,7 @@
 
 // the main loop will run in a single RTOS task if defined
 // 如果定义了则主循环会运行在单独的RTOS任务中
-// #define SINGLE_TASK_RUN_MAINLOOP
+//#define SINGLE_TASK_RUN_MAINLOOP
 #ifdef SINGLE_TASK_RUN_MAINLOOP
 #define MAIN_LOOP_TASK_PRIORITY 2
 #define MAIN_LOOP_TASK_CORE 1
@@ -308,7 +308,7 @@
 
 // you could choose which version you want to build here, English or Chinese
 // 你可以在这里选择你想构建的固件版本，中文或英文
-// #define ENGLISH_VERSION
+//#define ENGLISH_VERSION
 #define CHINESE_VERSION
 
 #ifdef CHINESE_VERSION
@@ -458,19 +458,5 @@
 #define CMD_AP_CONNECT_WIFI (uint8_t)0x90
 #define CMD_AP_WIFI_UNAVAILABLE (uint8_t)0x10
 #define CMD_AP_WIFI_CONNECTED (uint8_t)0X11
-
-// this definition will help you convert database
-// file format, enable this definition if you had
-// an old version
-// note: once you converted all your boards to new
-// you can undefine this definition
-// note: you may need to check server side code
-// to find what code you should update
-// 这个宏定义可以帮助你转换旧版本的数据库组件
-// 如果你以前使用过本代码，你可以使能这个宏定义
-// 如果你把你的所有板子都转换过一遍，则你可以取消这个宏定义
-// 注意：你可能需要检查一下服务器端的代码
-// 看一下有哪些代码需要更新
-// #define UPDATE_DATABASE_FROM_1_TO_2
 
 #endif

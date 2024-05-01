@@ -78,7 +78,7 @@ void App::setup()
                             {
                                 Serial.printf("number: %llu\n", (*it)->getNumber());
                             }
-                            else if (type == STRING)
+                            else if (type == ETYPE_STRING)
                             {
                                 //Serial.printf("string: %s\n", (*it)->getString().c_str());
                                 // or 或者

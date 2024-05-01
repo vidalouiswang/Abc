@@ -187,9 +187,19 @@ namespace myWebSocket
                 return false;
             }
 
+            int timeout = 100;
+            int availableBytes = 0;
+
+            // for esp32-c3 must vTaskDelay for times(because of esp32-c3 only has 1 core for all jobs)
             while (!this->client->available())
             {
+                vTaskDelay(10 / portTICK_PERIOD_MS);
                 yield();
+                if (--timeout <= 0)
+                {
+                    ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "in hankshake timeout when waiting data coming in");
+                    break;
+                }
             }
 
             // read server response
@@ -245,6 +255,7 @@ namespace myWebSocket
             else
             {
                 this->status = TCP_ERROR;
+                ESP_LOGD(MY_WEBSOCKET_DEBUG_HEADER, "error when read handshake response from server\n");
                 if (this->fn)
                     this->fn(TCP_ERROR, nullptr, 0);
                 return false;

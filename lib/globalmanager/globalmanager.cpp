@@ -4,173 +4,7 @@
 #include <mynet.h>
 #include <esp32time.h>
 
-#ifdef UPDATE_DATABASE_FROM_1_TO_2
-#include <initializer_list>
-
-void updateDatabase(initializer_list<String> list)
-{
-    auto fnUpdate = [](const char *fileName) -> void
-    {
-        uint64_t outlen = 0;
-        uint8_t *buf = MyFS::readFile(fileName, &outlen);
-
-        if (buf && outlen)
-        {
-            uint64_t offsetSrc = 0;
-            uint32_t newBufferLength = 0;
-
-            auto fnGetNewBufferLengthOffset = [&buf, &outlen]() -> uint32_t
-            {
-                uint64_t offset = 0;
-                uint32_t len = 0;
-                uint32_t offsetLen = 0;
-                while (offset < outlen)
-                {
-                    switch (buf[offset])
-                    {
-                    case 0x80: // byte
-                        offset += 2;
-                        break;
-                    case 0x81: // 2 bytes
-                        offset += 3;
-                        break;
-                    case 0x82: // 4 bytes
-                        offset += 5;
-                        break;
-                    case 0x83: // 8 bytes
-                        offset += 9;
-                        break;
-                    case 0x85: // buffer
-                        len = (uint32_t)((buf[offset + 1] << 24) + (buf[offset + 2] << 16) + (buf[offset + 3] << 8) + (buf[offset + 4]));
-                        offset += len + 5;
-                        break;
-                    case 0x86: // string
-                        len = (uint32_t)((buf[offset + 1] << 24) + (buf[offset + 2] << 16) + (buf[offset + 3] << 8) + (buf[offset + 4]));
-                        offset += len + 5;
-                        ++offsetLen;
-                        break;
-                    }
-                }
-                return offsetLen;
-            };
-
-            newBufferLength = outlen + fnGetNewBufferLengthOffset();
-
-            uint8_t *newBuffer = new (std::nothrow) uint8_t[newBufferLength];
-
-            if (!newBuffer)
-            {
-                Serial.println("update failed: buffer allocate failed");
-            }
-
-            bzero(newBuffer, newBufferLength);
-
-            offsetSrc = 0;
-            uint32_t offsetDest = 0;
-            uint32_t len = 0;
-
-            while (offsetSrc < outlen)
-            {
-                switch (buf[offsetSrc])
-                {
-                case 0x80: // byte
-                    newBuffer[offsetDest] = 1;
-                    newBuffer[offsetDest + 1] = buf[offsetSrc + 1];
-                    offsetSrc += 2;
-                    offsetDest += 2;
-                    break;
-                case 0x81: // 2 bytes
-                    newBuffer[offsetDest] = 2;
-                    newBuffer[offsetDest + 1] = buf[offsetSrc + 2];
-                    newBuffer[offsetDest + 2] = buf[offsetSrc + 1];
-                    offsetSrc += 3;
-                    offsetDest += 3;
-                    break;
-                case 0x82: // 4 bytes
-                    newBuffer[offsetDest] = 4;
-                    newBuffer[offsetDest + 1] = buf[offsetSrc + 4];
-                    newBuffer[offsetDest + 2] = buf[offsetSrc + 3];
-                    newBuffer[offsetDest + 3] = buf[offsetSrc + 2];
-                    newBuffer[offsetDest + 4] = buf[offsetSrc + 1];
-                    offsetSrc += 5;
-                    offsetDest += 5;
-                    break;
-                case 0x83: // 8 bytes
-                    newBuffer[offsetDest] = 8;
-                    newBuffer[offsetDest + 1] = buf[offsetSrc + 8];
-                    newBuffer[offsetDest + 2] = buf[offsetSrc + 7];
-                    newBuffer[offsetDest + 3] = buf[offsetSrc + 6];
-                    newBuffer[offsetDest + 4] = buf[offsetSrc + 5];
-                    newBuffer[offsetDest + 5] = buf[offsetSrc + 4];
-                    newBuffer[offsetDest + 6] = buf[offsetSrc + 3];
-                    newBuffer[offsetDest + 7] = buf[offsetSrc + 2];
-                    newBuffer[offsetDest + 8] = buf[offsetSrc + 1];
-                    offsetSrc += 9;
-                    offsetDest += 9;
-                    break;
-                case 0x85: // buffer
-                    newBuffer[offsetDest] = 10;
-                    newBuffer[offsetDest + 1] = buf[offsetSrc + 4];
-                    newBuffer[offsetDest + 2] = buf[offsetSrc + 3];
-                    newBuffer[offsetDest + 3] = buf[offsetSrc + 2];
-                    newBuffer[offsetDest + 4] = buf[offsetSrc + 1];
-                    offsetSrc += 5;
-
-                    offsetDest += 1;
-
-                    memcpy(&len, newBuffer + offsetDest, 4);
-
-                    offsetDest += 4;
-                    memcpy(newBuffer + offsetDest, buf + offsetSrc, len);
-                    offsetSrc += len;
-                    offsetDest += len;
-                    len = 0;
-
-                    break;
-                case 0x86: // string
-                    newBuffer[offsetDest] = 9;
-                    offsetDest += 1;
-
-                    len = (uint32_t)((buf[offsetSrc + 1] << 24) + (buf[offsetSrc + 2] << 16) + (buf[offsetSrc + 3] << 8) + (buf[offsetSrc + 4]));
-
-                    offsetSrc += 5;
-
-                    ++len;
-
-                    memcpy(newBuffer + offsetDest, &len, 4);
-                    offsetDest += 4;
-
-                    memcpy(newBuffer + offsetDest, buf + offsetSrc, len - 1);
-
-                    offsetDest += len;
-                    offsetSrc += len - 1;
-                    len = 0;
-                    break;
-                }
-            }
-
-            MyFS::writeFile(fileName, newBuffer, newBufferLength);
-        }
-    };
-
-    uint8_t c = 0;
-
-    for (auto i : list)
-    {
-        if (i.length())
-        {
-            if (!i.endsWith(".db"))
-            {
-                i += ".db";
-            }
-
-            fnUpdate(i.c_str());
-            ++c;
-        }
-    }
-}
-#endif
-
+#define _GLIBCXX_USE_NOEXCEPT noexcept
 void otaTask(void *t)
 {
     for (;;)
@@ -256,26 +90,6 @@ void GlobalManager::beginAll(WebSocketCallback apCB,
 
     // initialize littlefs
     this->beginFS();
-
-#ifdef UPDATE_DATABASE_FROM_1_TO_2
-    if (!MyFS::fileExist("_udb12_"))
-    {
-        if (MyFS::fileExist("mydb.db"))
-        {
-            Serial.println("waiting update database");
-            delay(1000 * 180);
-            updateDatabase({"mydb", "dbUser", "dbApp"});
-            MyFS::writeFile("_udb12_", "u", false);
-            delay(100);
-            Serial.println("database updated");
-            ESP.restart();
-        }
-        else
-        {
-            MyFS::writeFile("_udb12_", "u", false);
-        }
-    }
-#endif
 
     // load main database raw data(if exists) and build database in ram
     this->beginMainDB();
@@ -1303,7 +1117,7 @@ bool GlobalManager::sendMessageToClient(const Element &msg)
         {
             this->websocketClient->send(buffer, outLen);
             delete buffer;
-            Serial.println("message sent");
+            // Serial.println("message sent");
             return true;
         }
     }
@@ -1317,7 +1131,25 @@ OneTimeAuthorization *GlobalManager::generateOneTimeAuthorization()
     char time[24] = {0};
     sprintf(time, "%llu", authorization->time);
     String hash = this->userName.getHex() + this->password.getHex() + time;
+// #ifdef CONFIG_IDF_TARGET_ESP32C3
+//     try
+//     {
+//         authorization->hash = new uint8_t[32];
+//     }
+//     catch (const std::bad_alloc &e)
+//     {
+//         ESP_LOGD(SYSTEM_DEBUG_HEADER, "memory allocate failed");
+//         return authorization;
+//     }
+// #else
     authorization->hash = new (std::nothrow) uint8_t[32];
+    if (!authorization->hash)
+    {
+        ESP_LOGD(SYSTEM_DEBUG_HEADER, "memory allocate failed");
+        return authorization;
+    }
+//#endif
+
     mycrypto::SHA::sha256(hash.c_str(), authorization->hash);
     return authorization;
 }
@@ -1417,6 +1249,9 @@ void GlobalManager::internalUniversalWebsocketCallback(myWebSocket::WebSocketCli
                                                        uint8_t *data,
                                                        uint64_t length)
 {
+
+    ESP_LOGD(SYSTEM_DEBUG_HEADER, "in remote websocket callback\n");
+
     if (event == myWebSocket::WS_CONNECTED)
     {
         ESP_LOGD(SYSTEM_DEBUG_HEADER, "%s", (client ? "Client online" : "Websocket connected"));
@@ -1430,7 +1265,21 @@ void GlobalManager::internalUniversalWebsocketCallback(myWebSocket::WebSocketCli
         }
 
         // register to server to fetch time
+// #ifdef CONFIG_IDF_TARGET_ESP32C3
+//         uint8_t *tmpBuffer = nullptr;
+//         try
+//         {
+//             tmpBuffer = new uint8_t[this->lengthOfRegisterBuffer];
+//         }
+//         catch (const std::bad_alloc &e)
+//         {
+//             ESP_LOGD(SYSTEM_DEBUG_HEADER, "register buffer memory allocate failed");
+//             return;
+//         }
+// #else
         uint8_t *tmpBuffer = new (std::nothrow) uint8_t[this->lengthOfRegisterBuffer];
+//#endif
+
         if (!tmpBuffer)
         {
             ESP_LOGD(SYSTEM_DEBUG_HEADER, "register buffer memory allocate failed");
@@ -1450,6 +1299,10 @@ void GlobalManager::internalUniversalWebsocketCallback(myWebSocket::WebSocketCli
     else if (event == myWebSocket::TYPE_BIN)
     {
         this->routeDataToWebsocketHandler(data, length, client, event);
+    }
+    else
+    {
+        ESP_LOGD(SYSTEM_DEBUG_HEADER, "unknown websocket event\n");
     }
 }
 
@@ -1515,6 +1368,7 @@ void GlobalManager::loadWebsocketInformation()
             // call universal callback
             global->internalUniversalWebsocketCallback(nullptr, event, data, length);
         });
+    ESP_LOGD(SYSTEM_DEBUG_HEADER, "websocket callback bind\n");
 }
 
 void GlobalManager::connectWebocket()
@@ -2160,7 +2014,21 @@ void GlobalManager::setSerialRecvCb()
                         return;
                     }
                     size += 4;
-                    char *buf = new (std::nothrow) char[size];
+
+// #ifdef CONFIG_IDF_TARGET_ESP32C3
+//         char *buf = nullptr;
+//         try
+//         {
+//             buf = new char[size];
+//         }
+//         catch (const std::bad_alloc &e)
+//         {
+//             buf = nullptr;
+//         }
+// #else
+        char *buf = new (std::nothrow) char[size];
+//#endif
+
                     if (!buf)
                     {
                         ESP_LOGD(SYSTEM_DEBUG_HEADER, "memory allocate failed");

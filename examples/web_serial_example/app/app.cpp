@@ -42,7 +42,7 @@ void App::loop()
         if (t - this->lastPushTime > 1000)
         {
             this->lastPushTime = t;
-            global->webSerial(new Element(globalTime->getTime()));
+            global->sendMessageToClient(globalTime->getTime());
         }
     }
 }

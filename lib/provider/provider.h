@@ -3,14 +3,14 @@
  * @author Vida Wang (support@vida.wang)
  * @brief This file implemented a type of method to store pre-built functions and provide
  * interface to web.
- * 
+ *
  * 这个文件实现了一种方法来保存预先构建的功能和提供给前端的接口
- * 
+ *
  * @version 1.0.0
  * @date 2022-08-16
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 #ifndef PROVIDER_H_
 #define PROVIDER_H_
@@ -88,11 +88,11 @@ public:
     bool encrypt = false;
 
     /**
-     * @brief indicate that current provider 
+     * @brief indicate that current provider
      * is built-in or not
-     * 
+     *
      * 指示当前provider是内建的provider吗
-     * 
+     *
      */
     bool isBuiltIn = false;
 

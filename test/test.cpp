@@ -8,9 +8,11 @@
 void test_sha1()
 {
     String a = "hello world!";
-    String result = "430ce34d020724ed75a196dfc2ad67c77772d169";
-
-    TEST_ASSERT_EQUAL_STRING(result.c_str(), mycrypto::SHA::sha1(a).c_str());
+    String b = "Hello World!";
+    String c = "Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!";
+    TEST_ASSERT_EQUAL_STRING("430ce34d020724ed75a196dfc2ad67c77772d169", mycrypto::SHA::sha1(a).c_str());
+    TEST_ASSERT_EQUAL_STRING("2ef7bde608ce5404e97d5f042f95f89f1c232871", mycrypto::SHA::sha1(b).c_str());
+    TEST_ASSERT_EQUAL_STRING("89abb191ead1727513f76913920307fe3f994483", mycrypto::SHA::sha1(c).c_str());
 }
 
 void test_sha256()
@@ -43,8 +45,15 @@ void test_aes_encode()
     String iv = "0123456789abcdef";
 
     String plain = "hello world!";
+    Element plain2 = "Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!";
     String result = "700d435bf4c1ff6fbce7f8af99e8c1a9";
+    String result2 = "oNPIp1ZoEgpzSqInur+jfc3SLjMclLNvQ8URWP2hmqueeIYmtHfTbnNaDJ3hNpBbYdNrpx5Hh0o6YHbfwd4WPE/6kYwD0GlK5IxSjCPu9OVIbEPcHHafI+Ks5QTZ+lSMbzc+20xNTAgoO65TCkxDzpdaAM6lJSyNK+xmgvAJbe8QI4RGIjFz633PGhTCMONFJADQTSXFGMUVn5m165VCWvAK6lqNLOUPKiaQfWgjEetgR/E0wZqUpdvxAf0Z76nPLdXEgEZAj1Pu5c0NFBtZTmKw8ogq8d+7wupnYpY/jgcj1avbYwAWbOUPMdapLydfQhhFXemj8UHWqvCrdFTZ3VVOPtLwPyV3BHeopf0VqbHriPhRwe6KGJz8IGbQNemer80F+NIwe1oLKf4y7vm5QOTo6eaPguDxt/jzuGzkIg8=";
     TEST_ASSERT_EQUAL_STRING(result.c_str(), mycrypto::AES::aes256CBCEncrypt(key, iv, plain).c_str());
+
+    plain2.AES256_CBC(key.c_str(), iv.c_str());
+    plain2.toBase64(true);
+
+    TEST_ASSERT_EQUAL_STRING(plain2.c_str(), result2.c_str());
 }
 
 void test_aes_decode()
@@ -59,7 +68,10 @@ void test_aes_decode()
 
 void test_element_new_operators()
 {
+    char buf[128] = {0};
+
     Element a = 10;
+
     Element b = -2;
 
     uint8_t u8 = 1;
@@ -73,7 +85,7 @@ void test_element_new_operators()
     float f = 1.23f;
     double d = 3.1415926f;
 
-    char buf[128] = {0};
+
 
     // ==
     TEST_ASSERT_TRUE(a == 10);
@@ -622,7 +634,7 @@ void test_createArrayBuffer_and_decodeArrayBuffer()
             new Element(0x01),
             new Element(0x80),
             new Element(0xffff),
-            new Element(0xffffffff),
+            new Element((int)0xffffffff),
             new Element(-8),
             new Element(-160),
             new Element(-40000),
@@ -630,7 +642,7 @@ void test_createArrayBuffer_and_decodeArrayBuffer()
             new Element((float)1.23f),
             new Element((double)3.1415926f),
             new Element("Hello world!"),
-            new Element(buffer, 1024)};
+            new Element(buffer, (uint32_t)1024)};
 
     // directly use callback version, it included normal version
     ArrayBuffer::createArrayBuffer(
@@ -689,6 +701,10 @@ void test_element_crypto()
     TEST_ASSERT_TRUE(a.toAES256CBCHexString("0123456789abcdef0123456789abcdef", "0123456789abcdef"));
     TEST_ASSERT_TRUE_MESSAGE(a == "68c389f8fe135cb9fda801754c36b361", a.c_str());
 
+    a = "hello world!";
+    TEST_ASSERT_TRUE(a.toAES256CBCHexString("0123456789abcdef0123456789abcdef", "0123456789abcdef"));
+    TEST_ASSERT_TRUE_MESSAGE(a == "700d435bf4c1ff6fbce7f8af99e8c1a9", a.c_str());
+
     a = "Hello World!";
     TEST_ASSERT_TRUE(a.toAES256CBCBase64("0123456789abcdef0123456789abcdef", "0123456789abcdef"));
     TEST_ASSERT_TRUE_MESSAGE(a == "aMOJ+P4TXLn9qAF1TDazYQ==", a.c_str());
@@ -738,7 +754,13 @@ void test_mydb()
     TEST_ASSERT_FALSE(db_unit_test("key")->available());
     *db_unit_test("key") = 100;
     TEST_ASSERT_TRUE(*db_unit_test("key") == 100);
+
     TEST_ASSERT_TRUE(db_unit_test.flush());
+
+    db_unit_test.unload();
+
+    db_unit_test.begin();
+    TEST_ASSERT_TRUE(*db_unit_test("key") == 100);
 
     TEST_ASSERT_TRUE(MyFS::fileExist("db_unit_test.db"));
 

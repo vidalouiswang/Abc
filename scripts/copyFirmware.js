@@ -1,5 +1,11 @@
 let fs = require("fs");
+let os = require("os");
 console.log("copy firmware\n");
+
+let slash = "/";
+if (os.type() == "Windows_NT") {
+    slash = "\\";
+}
 
 Date.prototype.getFormat = function (format) {
     let b = this;
@@ -32,11 +38,27 @@ Date.prototype.getFormat = function (format) {
 };
 
 let bootloaderPath = process.argv[process.argv.length - 1];
-let envPath = bootloaderPath.match(/.+\/\.pio/i).toString();
+let envPath = bootloaderPath.match(/.+\/\.pio/i);//.toString();
+
+if (!envPath) {
+    envPath = bootloaderPath.match(/.+\\\.pio/i);
+    if (!envPath) {
+        console.log("Unknown error");
+        return;
+    }
+}
+envPath = envPath.toString();
 
 envPath = envPath.substring(0, envPath.length - 4);
 
 let firmwarePath = bootloaderPath.match(/.+\//i);
+if (!firmwarePath) {
+    firmwarePath = bootloaderPath.match(/.+\\/i);
+    if (!firmwarePath) {
+        console.log("Unknown error");
+        return;
+    }
+}
 
 let app_h, appName, appVersion;
 
@@ -54,7 +76,10 @@ if (!fs.existsSync(bootloaderPath + "firmware/")) {
     fs.mkdirSync(bootloaderPath + "firmware/");
 }
 
+appVersion = appVersion.replace(/['"\\\/;:,\.]/gi,"_");
+
+
 fs.copyFileSync(firmwarePath + 'firmware.bin',
-    envPath + "firmware/" + appName + "_" + appVersion + "_" + new Date().getFormat("hh.MM.ss") + ".bin");
+    envPath + "firmware" + slash + appName + "_" + appVersion + "_" + new Date().getFormat("hh.MM.ss") + ".bin");
 
 console.log("firmware copied\n");

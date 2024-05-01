@@ -4,6 +4,8 @@
 
 ## A basic ESP32 library for beginners
 
+## Support ESP32/ESP32-S3/ESP32-C3
+
 ### At present, the ESP32 firmware built with this library has been running stably for several months and can be used officially.
 
 ### Note: Clone the code from main branch.
@@ -11,7 +13,6 @@
 ## Brief
 
 This library work with Espressif offical framework esp32-arduino 2.0.3.
-Support ESP32 and ESP32-S3.
 
 This library is for beginners who want to write their own code, but don't have much foundation. This library can be your starting point for learning esp32, you can use not only all the functions of esp32-arduino, but also esp-idf function, you can learn how to develop ESP32 from simple to further.
 

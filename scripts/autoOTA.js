@@ -77,6 +77,10 @@ arr.sort((a, b) => {
 
 let target = null;
 
+if(arr.length <1){
+    return;
+}
+
 target = config.table.find(e => {
     return e.appName === arr[0].appName;
 });

@@ -433,7 +433,7 @@
 	//创建websocket服务器
 	webSocket = new WebSocketServer({
 		backlog: 10,
-		maxPayload: 1000 * 1024,
+		maxPayload: 4096 * 1024,
 		server: server,
 		perMessageDeflate: false
 	}, function () { });

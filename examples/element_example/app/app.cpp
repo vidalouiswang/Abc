@@ -205,7 +205,7 @@ void App::setup()
 
     uint32_t m = 0;
     uint8_t *l = x.getUint8Array(&m);
-    m = x.getU8aLen();
+    m = x.getRawBufferLength();
 
 }
 

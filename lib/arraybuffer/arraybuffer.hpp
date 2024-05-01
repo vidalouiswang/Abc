@@ -242,9 +242,20 @@ private:
      */
     bool _copyBuffer(uint8_t *buffer, uint32_t length, uint32_t offset = 0, ElementType type = ETYPE_BUFFER)
     {
-        // allocate buffer
-        // 分配内存
+// allocate buffer
+// 分配内存
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+        try
+        {
+            this->data.buffer.p = new uint8_t[length];
+        }
+        catch (const std::bad_alloc &e)
+        {
+            this->data.buffer.p = nullptr;
+        }
+#else
         this->data.buffer.p = new (std::nothrow) uint8_t[length];
+#endif
 
         // check memory allocation
         // 检测内存分配
@@ -314,10 +325,19 @@ public:
     inline Element(const uint32_t &n) : type(ETYPE_UINT32) { this->data.u32 = n; };
 
 #ifdef ENABLE_INT_DEFAULT_CONSTRUCTOR_AUTO_SET_TYPE_AND_DATA
+
+#if CONFIG_IDF_TARGET_ESP32C3 //
+    inline Element(const int &n)
+    {
+        this->setNumber(n);
+    }
+#else
+
     inline Element(const int32_t &n)
     {
         this->setNumber(n);
     }
+#endif
 #else
     inline Element(const int32_t &n) : type(ETYPE_INT32)
     {
@@ -886,7 +906,14 @@ public:
         this->data.u32 = n;
         return n;
     }
-
+#if CONFIG_IDF_TARGET_ESP32C3
+    int32_t operator=(const int &n)
+    {
+        this->reset(ETYPE_INT32);
+        this->data.i32 = n;
+        return n;
+    }
+#endif
     int32_t operator=(const int32_t &n)
     {
         this->reset(ETYPE_INT32);
@@ -1104,6 +1131,21 @@ public:
 #endif
     }
 
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator==(const int &n) const
+    {
+#ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
+        return this->getUniversalDouble() == n;
+#else
+        if (this->type == ETYPE_INT32)
+        {
+            return this->data.i32 == n;
+        }
+        return false;
+#endif
+    }
+
+#endif
     inline bool operator==(const int32_t &n) const
     {
 #ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
@@ -1246,6 +1288,21 @@ public:
 #endif
     }
 
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator!=(const int &n) const
+    {
+#ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
+        return this->getUniversalDouble() != n;
+#else
+        if (this->type == ETYPE_INT32)
+        {
+            return this->data.i32 != n;
+        }
+        return false;
+#endif
+    }
+#endif
+
     inline bool operator!=(const int32_t &n) const
     {
 #ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
@@ -1376,6 +1433,21 @@ public:
         return false;
 #endif
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator<(const int &n) const
+    {
+#ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
+        return this->getUniversalDouble() < n;
+#else
+        if (this->type == ETYPE_INT32)
+        {
+            return this->data.i32 < n;
+        }
+        return false;
+#endif
+    }
+#endif
 
     inline bool operator<(const int32_t &n) const
     {
@@ -1554,6 +1626,21 @@ public:
         return false;
 #endif
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator>(const int &n) const
+    {
+#ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
+        return this->getUniversalDouble() > n;
+#else
+        if (this->type == ETYPE_INT32)
+        {
+            return this->data.i32 > n;
+        }
+        return false;
+#endif
+    }
+#endif
 
     inline bool operator>(const int32_t &n) const
     {
@@ -1734,6 +1821,21 @@ public:
 #endif
     }
 
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator<=(const int &n) const
+    {
+#ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
+        return this->getUniversalDouble() <= n;
+#else
+        if (this->type == ETYPE_INT32)
+        {
+            return this->data.i32 <= n;
+        }
+        return false;
+#endif
+    }
+#endif
+
     inline bool operator<=(const int32_t &n) const
     {
 #ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
@@ -1913,6 +2015,21 @@ public:
 #endif
     }
 
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator>=(const int &n) const
+    {
+#ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
+        return this->getUniversalDouble() >= n;
+#else
+        if (this->type == ETYPE_INT32)
+        {
+            return this->data.i32 >= n;
+        }
+        return false;
+#endif
+    }
+#endif
+
     inline bool operator>=(const int32_t &n) const
     {
 #ifdef ENABLE_ELEMENT_NUMBER_FUZZY_COMPARISON
@@ -2052,6 +2169,13 @@ public:
     {
         return (uint32_t)(this->getUniversalDouble() + n);
     }
+#if CONFIG_IDF_TARGET_ESP32C3
+    int operator+(const int &n) const
+    {
+        return (int)(this->getUniversalDouble() + n);
+    }
+#endif
+
     int32_t operator+(const int32_t &n) const
     {
         return (int32_t)(this->getUniversalDouble() + n);
@@ -2260,6 +2384,14 @@ public:
     {
         return (uint32_t)(this->getUniversalDouble() - n);
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    int operator-(const int &n) const
+    {
+        return (int)(this->getUniversalDouble() - n);
+    }
+#endif
+
     int32_t operator-(const int32_t &n) const
     {
         return (int32_t)(this->getUniversalDouble() - n);
@@ -2438,6 +2570,14 @@ public:
     {
         return (uint32_t)(this->getUniversalDouble() * n);
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    int operator*(const int &n) const
+    {
+        return (int)(this->getUniversalDouble() * n);
+    }
+#endif
+
     int32_t operator*(const int32_t &n) const
     {
         return (int32_t)(this->getUniversalDouble() * n);
@@ -2615,6 +2755,14 @@ public:
     {
         return (uint32_t)(this->getUniversalDouble() / n);
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    int operator/(const int &n) const
+    {
+        return (int)(this->getUniversalDouble() / n);
+    }
+#endif
+
     int32_t operator/(const int32_t &n) const
     {
         return (int32_t)(this->getUniversalDouble() / n);
@@ -2647,34 +2795,34 @@ public:
                 switch (this->type)
                 {
                 case ETYPE_UINT8:
-                    tmp = this->data.u8 / rvalue.getUint8();
+                    tmp = (uint8_t)(this->data.u8 / rvalue.getUint8());
                     break;
                 case ETYPE_INT8:
-                    tmp = this->data.i8 / rvalue.getInt8();
+                    tmp = (int8_t)(this->data.i8 / rvalue.getInt8());
                     break;
                 case ETYPE_UINT16:
-                    tmp = this->data.u16 / rvalue.getUint16();
+                    tmp = (uint16_t)(this->data.u16 / rvalue.getUint16());
                     break;
                 case ETYPE_INT16:
-                    tmp = this->data.i16 / rvalue.getInt16();
+                    tmp = (int16_t)(this->data.i16 / rvalue.getInt16());
                     break;
                 case ETYPE_UINT32:
-                    tmp = this->data.u32 / rvalue.getUint32();
+                    tmp = (uint32_t)(this->data.u32 / rvalue.getUint32());
                     break;
                 case ETYPE_INT32:
-                    tmp = this->data.i32 / rvalue.getInt32();
+                    tmp = (int32_t)(this->data.i32 / rvalue.getInt32());
                     break;
                 case ETYPE_UINT64:
-                    tmp = this->data.u64 / rvalue.getUint64();
+                    tmp = (uint64_t)(this->data.u64 / rvalue.getUint64());
                     break;
                 case ETYPE_INT64:
-                    tmp = this->data.i64 / rvalue.getInt64();
+                    tmp = (int64_t)(this->data.i64 / rvalue.getInt64());
                     break;
                 case ETYPE_FLOAT:
-                    tmp = this->data.f / rvalue.getFloat();
+                    tmp = (float)(this->data.f / rvalue.getFloat());
                     break;
                 case ETYPE_DOUBLE:
-                    tmp = this->data.d / rvalue.getDouble();
+                    tmp = (double)(this->data.d / rvalue.getDouble());
                     break;
                 }
             }
@@ -2709,6 +2857,15 @@ public:
         (*this) = (uint32_t)((*this) + n);
         return *this;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element &operator+=(const int &n)
+    {
+        (*this) = (int)((*this) + n);
+        return *this;
+    }
+#endif
+
     Element &operator+=(const int32_t &n)
     {
         (*this) = (int32_t)((*this) + n);
@@ -2837,6 +2994,15 @@ public:
         (*this) = (uint32_t)((*this) - n);
         return *this;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element &operator-=(const int &n)
+    {
+        (*this) = (int)((*this) - n);
+        return *this;
+    }
+#endif
+
     Element &operator-=(const int32_t &n)
     {
         (*this) = (int32_t)((*this) - n);
@@ -2971,6 +3137,15 @@ public:
         (*this) = (uint32_t)((*this) * n);
         return *this;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element &operator*=(const int &n)
+    {
+        (*this) = (int)((*this) * n);
+        return *this;
+    }
+#endif
+
     Element &operator*=(const int32_t &n)
     {
         (*this) = (int32_t)((*this) * n);
@@ -3061,6 +3236,20 @@ public:
 #endif
         return *this;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element &operator/=(const int &n)
+    {
+#ifdef AUTO_EXTEND_DATA_RANGE
+        (*this) = (double)(this->getUniversalDouble() / (double)n);
+#else
+
+        (*this) = (int)((*this) / n);
+#endif
+        return *this;
+    }
+#endif
+
     Element &operator/=(const int32_t &n)
     {
 #ifdef AUTO_EXTEND_DATA_RANGE
@@ -3106,6 +3295,8 @@ public:
     }
 
     // ++
+
+
     Element &operator++()
     {
         if (this->type < 9)
@@ -3120,7 +3311,32 @@ public:
             }
             else
             {
-                (*this) += 1;
+                switch(this->type){
+                    case ETYPE_UINT8:
+                        ++this->data.u8;
+                        break;
+                    case ETYPE_INT8:
+                        ++this->data.i8;
+                        break;
+                    case ETYPE_UINT16:
+                        ++this->data.u16;
+                        break;
+                    case ETYPE_INT16:
+                        ++this->data.i16;
+                        break;
+                    case ETYPE_UINT32:
+                        ++this->data.u32;
+                        break;
+                    case ETYPE_INT32:
+                        ++this->data.i32;
+                        break;
+                    case ETYPE_UINT64:
+                        ++this->data.u64;
+                        break;
+                    case ETYPE_INT64:
+                        ++this->data.i64;
+                        break;
+                }
             }
         }
         else
@@ -3133,12 +3349,21 @@ public:
         return (*this);
     }
 
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element operator++(int)
+    {
+        Element tmp = *this;
+        this->operator++();
+        return tmp;
+    }
+#else
     Element operator++(int)
     {
         Element tmp = *this;
         ++(*this);
         return tmp;
     }
+#endif
 
     // --
 
@@ -3156,7 +3381,32 @@ public:
             }
             else
             {
-                (*this) -= 1;
+                switch(this->type){
+                    case ETYPE_UINT8:
+                        --this->data.u8;
+                        break;
+                    case ETYPE_INT8:
+                        --this->data.i8;
+                        break;
+                    case ETYPE_UINT16:
+                        --this->data.u16;
+                        break;
+                    case ETYPE_INT16:
+                        --this->data.i16;
+                        break;
+                    case ETYPE_UINT32:
+                        --this->data.u32;
+                        break;
+                    case ETYPE_INT32:
+                        --this->data.i32;
+                        break;
+                    case ETYPE_UINT64:
+                        --this->data.u64;
+                        break;
+                    case ETYPE_INT64:
+                        --this->data.i64;
+                        break;
+                }
             }
         }
         else
@@ -3182,6 +3432,19 @@ public:
     }
 
     // %
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element operator%(const int &rvalue) const
+    {
+        Element tmp;
+        if (this->type < 9 && this->type != ETYPE_FLOAT && this->type != ETYPE_DOUBLE)
+        {
+            tmp = (int)(this->data.i64 % rvalue);
+        }
+        return tmp;
+    }
+#endif
+
     Element operator%(const int32_t &rvalue) const
     {
         Element tmp;
@@ -3204,6 +3467,19 @@ public:
 
     //%=
 
+#if CONFIG_IDF_TARGET_ESP32C3
+    Element &operator%=(const int &rvalue)
+    {
+        Element result = (*this) % rvalue;
+        if (result.available())
+        {
+            this->reset(ETYPE_INT32);
+            this->data.i32 = result.getInt32();
+        }
+        return (*this);
+    }
+#endif
+
     Element &operator%=(const int32_t &rvalue)
     {
         Element result = (*this) % rvalue;
@@ -3217,12 +3493,12 @@ public:
 
     Element &operator%=(const Element &rvalue)
     {
-        return this->operator%=(rvalue.getNumber());
+        return this->operator%=((int32_t)rvalue.getNumber());
     }
 
     Element &operator%=(const Element *rvalue)
     {
-        return this->operator%=(rvalue->getNumber());
+        return this->operator%=((int32_t)rvalue->getNumber());
     }
 
     // <<
@@ -3235,28 +3511,28 @@ public:
             switch (this->type)
             {
             case ETYPE_UINT8:
-                tmp = (uint8_t)this->data.u8 << rvalue;
+                tmp = (uint8_t)(this->data.u8 << rvalue);
                 break;
             case ETYPE_INT8:
-                tmp = (int8_t)this->data.i8 << rvalue;
+                tmp = (int8_t)(this->data.i8 << rvalue);
                 break;
             case ETYPE_UINT16:
-                tmp = (uint16_t)this->data.u16 << rvalue;
+                tmp = (uint16_t)(this->data.u16 << rvalue);
                 break;
             case ETYPE_INT16:
-                tmp = (int16_t)this->data.i16 << rvalue;
+                tmp = (int16_t)(this->data.i16 << rvalue);
                 break;
             case ETYPE_UINT32:
-                tmp = (uint32_t)this->data.u32 << rvalue;
+                tmp = (uint32_t)(this->data.u32 << rvalue);
                 break;
             case ETYPE_INT32:
-                tmp = (int32_t)this->data.i32 << rvalue;
+                tmp = (int32_t)(this->data.i32 << rvalue);
                 break;
             case ETYPE_UINT64:
-                tmp = (uint64_t)this->data.u64 << rvalue;
+                tmp = (uint64_t)(this->data.u64 << rvalue);
                 break;
             case ETYPE_INT64:
-                tmp = (int64_t)this->data.i64 << rvalue;
+                tmp = (int64_t)(this->data.i64 << rvalue);
                 break;
             default:
                 break;
@@ -3295,28 +3571,28 @@ public:
             switch (this->type)
             {
             case ETYPE_UINT8:
-                tmp = (uint8_t)this->data.u8 >> rvalue;
+                tmp = (uint8_t)(this->data.u8 >> rvalue);
                 break;
             case ETYPE_INT8:
-                tmp = (int8_t)this->data.i8 >> rvalue;
+                tmp = (int8_t)(this->data.i8 >> rvalue);
                 break;
             case ETYPE_UINT16:
-                tmp = (uint16_t)this->data.u16 >> rvalue;
+                tmp = (uint16_t)(this->data.u16 >> rvalue);
                 break;
             case ETYPE_INT16:
-                tmp = (int16_t)this->data.i16 >> rvalue;
+                tmp = (int16_t)(this->data.i16 >> rvalue);
                 break;
             case ETYPE_UINT32:
-                tmp = (uint32_t)this->data.u32 >> rvalue;
+                tmp = (uint32_t)(this->data.u32 >> rvalue);
                 break;
             case ETYPE_INT32:
-                tmp = (int32_t)this->data.i32 >> rvalue;
+                tmp = (int32_t)(this->data.i32 >> rvalue);
                 break;
             case ETYPE_UINT64:
-                tmp = (uint64_t)this->data.u64 >> rvalue;
+                tmp = (uint64_t)(this->data.u64 >> rvalue);
                 break;
             case ETYPE_INT64:
-                tmp = (int64_t)this->data.i64 >> rvalue;
+                tmp = (int64_t)(this->data.i64 >> rvalue);
                 break;
             default:
                 break;
@@ -3411,7 +3687,11 @@ public:
         case ETYPE_UINT32:
             return Element((uint32_t)(this->data.u32 & rvalue.getUint32()));
         case ETYPE_INT32:
+#if CONFIG_IDF_TARGET_ESP32C3
+            return Element((int)(this->data.i32 & rvalue.getInt32()));
+#else
             return Element((int32_t)(this->data.i32 & rvalue.getInt32()));
+#endif
         case ETYPE_UINT64:
             return Element((uint64_t)(this->data.u64 & rvalue.getUint64()));
         case ETYPE_INT64:
@@ -3451,7 +3731,11 @@ public:
         case ETYPE_UINT32:
             return Element((uint32_t)(this->data.u32 | rvalue.getUint32()));
         case ETYPE_INT32:
+#if CONFIG_IDF_TARGET_ESP32C3
+            return Element((int)(this->data.i32 | rvalue.getInt32()));
+#else
             return Element((int32_t)(this->data.i32 | rvalue.getInt32()));
+#endif
         case ETYPE_UINT64:
             return Element((uint64_t)(this->data.u64 | rvalue.getUint64()));
         case ETYPE_INT64:
@@ -3486,7 +3770,11 @@ public:
         case ETYPE_UINT32:
             return Element((uint32_t)(~(this->data.i64)));
         case ETYPE_INT32:
+#if CONFIG_IDF_TARGET_ESP32C3
+            return Element((int)(~(this->data.i64)));
+#else
             return Element((int32_t)(~(this->data.i64)));
+#endif
         case ETYPE_UINT64:
             return Element((uint64_t)(~(this->data.i64)));
         case ETYPE_INT64:
@@ -3526,7 +3814,12 @@ public:
         case ETYPE_UINT32:
             return Element((uint32_t)(this->data.u32 ^ rvalue.getUint32()));
         case ETYPE_INT32:
+#if CONFIG_IDF_TARGET_ESP32C3
+            return Element((int)(this->data.i32 ^ rvalue.getInt32()));
+#else
+
             return Element((int32_t)(this->data.i32 ^ rvalue.getInt32()));
+#endif
         case ETYPE_UINT64:
             return Element((uint64_t)(this->data.u64 ^ rvalue.getUint64()));
         case ETYPE_INT64:
@@ -3585,6 +3878,16 @@ public:
                 (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
                rvalue;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator&&(const int &rvalue) const
+    {
+        return this->available() &&
+               (this->data.i32 ||
+                (this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) &&
+               rvalue;
+    }
+#endif
 
     inline bool operator&&(const int32_t &rvalue) const
     {
@@ -3670,6 +3973,13 @@ public:
     {
         return this->available() && (this->data.u32 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline bool operator||(const int &rvalue) const
+    {
+        return this->available() && (this->data.i32 || ((this->data.buffer.bufferLength > (this->type == ETYPE_STRING ? 1 : 0))) || rvalue);
+    }
+#endif
 
     inline bool operator||(const int32_t &rvalue) const
     {
@@ -3852,6 +4162,16 @@ public:
         this->data.u32 &= rvalue;
         return this->data.u32;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline int operator&=(const int &rvalue)
+    {
+        this->reset(ETYPE_INT32);
+        this->data.i32 &= rvalue;
+        return this->data.i32;
+    }
+#endif
+
     inline int32_t operator&=(const int32_t &rvalue)
     {
         this->reset(ETYPE_INT32);
@@ -3908,6 +4228,16 @@ public:
         this->data.u32 |= rvalue;
         return this->data.u32;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline int operator|=(const int &rvalue)
+    {
+        this->reset(ETYPE_INT32);
+        this->data.i32 |= rvalue;
+        return this->data.i32;
+    }
+#endif
+
     inline int32_t operator|=(const int32_t &rvalue)
     {
         this->reset(ETYPE_INT32);
@@ -3963,6 +4293,16 @@ public:
         this->data.u32 ^= rvalue;
         return this->data.u32;
     }
+
+#if CONFIG_IDF_TARGET_ESP32C3
+    inline int operator^=(const int &rvalue)
+    {
+        this->reset(ETYPE_INT32);
+        this->data.i32 ^= rvalue;
+        return this->data.i32;
+    }
+#endif
+
     inline int32_t operator^=(const int32_t &rvalue)
     {
         this->reset(ETYPE_INT32);
@@ -4425,7 +4765,22 @@ public:
     {
         if (this->type == ETYPE_STRING || this->type == ETYPE_BUFFER)
         {
-            uint8_t *buf = new (std::nothrow) uint8_t[32];
+
+            uint8_t *buf = nullptr;
+
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+            try
+            {
+                buf = new uint8_t[32];
+            }
+            catch (const std::bad_alloc &e)
+            {
+                // do nothing
+            }
+#else
+            buf = new (std::nothrow) uint8_t[32];
+#endif
+
             if (!buf)
             {
                 return buf;
@@ -4790,7 +5145,20 @@ public:
         if (!bufferLength)
             return nullptr;
 
-        uint8_t *buf = new (std::nothrow) uint8_t[bufferLength];
+        uint8_t *buf = nullptr;
+
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+        try
+        {
+            buf = new uint8_t[bufferLength];
+        }
+        catch (const std::bad_alloc &e)
+        {
+            // do nothing
+        }
+#else
+        buf = new (std::nothrow) uint8_t[bufferLength];
+#endif
 
         if (!buf)
             return buf;
@@ -4846,7 +5214,21 @@ public:
 
         // allocate buffer
         // 分配内存
-        uint8_t *buf = new (std::nothrow) uint8_t[bufferLength];
+        uint8_t *buf = nullptr; // new (std::nothrow) uint8_t[bufferLength];
+
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+        try
+        {
+            buf = new uint8_t[bufferLength];
+        }
+        catch (const std::bad_alloc &e)
+        {
+            // do nothing
+        }
+#else
+        buf = new (std::nothrow) uint8_t[bufferLength];
+#endif
+
         if (!buf)
         {
             // will return null pointer if memory allocate failed
